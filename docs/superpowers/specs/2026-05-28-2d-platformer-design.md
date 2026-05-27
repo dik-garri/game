@@ -56,7 +56,8 @@ GameScene и UIScene общаются через Phaser EventEmitter (событ
 
 Единый реестр визуалов. Для каждого объекта (`player`, `enemy`, `coin`,
 `spike`, `platform`, `tile`, `flag`) задаются: ключ текстуры, размеры, цвет/
-форма для placeholder-режима.
+форма для placeholder-режима. `tile` — статичный твёрдый блок из ASCII-карты;
+`platform` — текстура движущейся платформы (отдельный класс `MovingPlatform`).
 
 В первой версии `BootScene` вызывает `createPlaceholderTextures(scene)` из
 этого файла, который рисует каждую текстуру через
