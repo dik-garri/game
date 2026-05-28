@@ -37,15 +37,16 @@ export class MovingPlatform extends Phaser.Physics.Arcade.Image {
   }
 
   // игрок стоит на платформе?
-  // Основной путь — touching-флаги. Фолбэк по bbox используется на краях фрейм-тайминга,
-  // но требует туземного контакта (touching.up), иначе игрок на статичном тайле в той же
-  // строке, что и траектория платформы, был бы ложно «провезён».
+  // Чистая bbox-проверка: ноги игрока в пределах 4px над верхом платформы,
+  // горизонтальное перекрытие, игрок на земле. touching.up НЕ используем —
+  // после шага физики платформа уезжает на доли пикселя за кадр, флаг моргает
+  // и игрок соскальзывал. Ложный «провоз» по этой проверке возможен, только
+  // если статичный тайл стоит ровно на пути платформы; в текущих уровнях
+  // такого нет (см. levels.js).
   isRiding(player) {
-    return (this.body.touching.up && player.body.touching.down)
-      || (this.body.touching.up
-          && player.body.bottom <= this.body.top + 4
-          && player.body.right > this.body.left
-          && player.body.left < this.body.right
-          && player.body.blocked.down);
+    return player.body.bottom <= this.body.top + 4
+      && player.body.right > this.body.left
+      && player.body.left < this.body.right
+      && player.body.blocked.down;
   }
 }
