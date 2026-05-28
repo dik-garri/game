@@ -9,6 +9,11 @@ export class MovingPlatform extends Phaser.Physics.Arcade.Image {
     scene.physics.add.existing(this);
     this.body.setAllowGravity(false);
     this.body.setImmovable(true);
+    // Отключаем автоматический «провоз» Phaser-ом (friction.x по умолчанию = 1):
+    // он работает только по X и складывается с нашим ручным deltaX → игрок едет
+    // в 2× быстрее платформы. Единственный механизм провоза — наш deltaX/deltaY.
+    this.body.friction.x = 0;
+    this.body.friction.y = 0;
     this.axis = axis;
     this.minV = axis === "x" ? x - rangePx : y - rangePx;
     this.maxV = axis === "x" ? x + rangePx : y + rangePx;
