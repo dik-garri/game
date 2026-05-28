@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.world.setBounds(0, 0, parsed.worldWidth, parsed.worldHeight);
     this.isDead = false;
+    this.won = false;
 
     // статичные тайлы
     this.solids = this.physics.add.staticGroup();
@@ -43,7 +44,7 @@ export class GameScene extends Phaser.Scene {
     this.coins = this.physics.add.staticGroup();
     parsed.coins.forEach((c) => this.coins.create(c.x, c.y, "coin"));
 
-    // флаг (overlap-обработчик добавляется в Task 12 — финиш уровня)
+    // флаг (overlap-обработчик регистрируется ниже)
     if (parsed.flag) this.flag = this.physics.add.staticImage(parsed.flag.x, parsed.flag.y, "flag");
 
     // игрок
@@ -100,6 +101,16 @@ export class GameScene extends Phaser.Scene {
       this.physics.add.collider(this.enemies, mp);
     });
 
+    // финиш по флагу — победа уровня
+    if (this.flag) {
+      this.physics.add.overlap(this.player, this.flag, () => {
+        if (this.isDead || this.won) return;
+        this.won = true;
+        this.scene.stop("UI");
+        this.scene.start("LevelComplete", { levelIndex: this.levelIndex, score: this.score });
+      }, null, this);
+    }
+
     // сообщить UI стартовые значения
     // TODO(Task 8): UIScene создаётся через scene.launch и её create() выполняется
     // ПОСЛЕ этого emit. Если HUD не получает стартовые значения — Task 8 должна
@@ -108,7 +119,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.isDead) return;
+    if (this.isDead || this.won) return;
     this.player.update();
     if (this.player.y > this.physics.world.bounds.height + 64) this.die();
     // обновляем платформы и провозим игрока, если он стоит сверху
