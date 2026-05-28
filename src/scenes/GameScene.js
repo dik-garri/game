@@ -112,9 +112,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // сообщить UI стартовые значения
-    // TODO(Task 8): UIScene создаётся через scene.launch и её create() выполняется
-    // ПОСЛЕ этого emit. Если HUD не получает стартовые значения — Task 8 должна
-    // принимать их через scene.launch("UI", {...}) и читать в UIScene.init().
+    // Стартовые значения HUD передаются явно через scene.launch("UI", ...) из MenuScene/LevelComplete/GameOver;
     this.events.emit("hud-init", { lives: this.lives, score: this.score, level: this.levelIndex + 1 });
   }
 

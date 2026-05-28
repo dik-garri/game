@@ -10,9 +10,10 @@ export class GameOverScene extends Phaser.Scene {
     this.add.text(cx, cy + 50, "[R] заново   [M] меню", { fontSize: "20px", color: "#b0bec5" }).setOrigin(0.5);
     this.input.keyboard.once("keydown-R", () => {
       // UI уже остановлена в GameScene.die() — но stop + launch гарантирует свежий старт.
+      // Накопленный счёт сохраняем (как и при переходе между уровнями).
       this.scene.stop("UI");
-      this.scene.start("Game", { levelIndex: this.levelIndex, lives: CONFIG.livesPerLevel });
-      this.scene.launch("UI", { lives: CONFIG.livesPerLevel, score: 0, level: this.levelIndex + 1 });
+      this.scene.start("Game", { levelIndex: this.levelIndex, lives: CONFIG.livesPerLevel, score: this.score });
+      this.scene.launch("UI", { lives: CONFIG.livesPerLevel, score: this.score, level: this.levelIndex + 1 });
     });
     this.input.keyboard.once("keydown-M", () => this.scene.start("Menu"));
   }
