@@ -2,16 +2,17 @@ import { CONFIG } from "../config.js";
 import { LEVELS } from "../levels.js";
 import { parseLevel } from "../logic/parseLevel.js";
 import { Player } from "../entities/Player.js";
+import { loseLife, isGameOver } from "../logic/progress.js";
 
 export class GameScene extends Phaser.Scene {
   constructor() { super("Game"); }
 
   // Жизни сбрасываются на каждый вход в уровень (3 на уровень — см. CONFIG.livesPerLevel).
-  // При рестарте уровня после смерти Task 9 будет передавать оставшиеся жизни через data.
+  // При рестарте уровня после смерти жизни/счёт передаются через data.
   init(data) {
     this.levelIndex = data.levelIndex ?? 0;
-    this.lives = CONFIG.livesPerLevel;
-    this.score = 0;
+    this.lives = data.lives ?? CONFIG.livesPerLevel;
+    this.score = data.score ?? 0;
   }
 
   create() {
@@ -20,6 +21,7 @@ export class GameScene extends Phaser.Scene {
     if (!parsed.hadStart) console.error("Уровень без точки старта P");
 
     this.physics.world.setBounds(0, 0, parsed.worldWidth, parsed.worldHeight);
+    this.isDead = false;
 
     // статичные тайлы
     this.solids = this.physics.add.staticGroup();
@@ -57,6 +59,9 @@ export class GameScene extends Phaser.Scene {
       this.events.emit("score-changed", this.score);
     });
 
+    // смерть от шипов
+    this.physics.add.overlap(this.player, this.spikes, () => this.die(), null, this);
+
     // сообщить UI стартовые значения
     // TODO(Task 8): UIScene создаётся через scene.launch и её create() выполняется
     // ПОСЛЕ этого emit. Если HUD не получает стартовые значения — Task 8 должна
@@ -65,6 +70,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   update() {
+    if (this.isDead) return;
     this.player.update();
+    if (this.player.y > this.physics.world.bounds.height + 64) this.die();
+  }
+
+  die() {
+    if (this.isDead) return;
+    this.isDead = true;
+    this.lives = loseLife(this.lives);
+    this.events.emit("life-changed", this.lives);
+    this.cameras.main.flash(150, 255, 0, 0);
+    this.time.delayedCall(400, () => {
+      if (isGameOver(this.lives)) {
+        this.scene.stop("UI");
+        this.scene.start("GameOver", { levelIndex: this.levelIndex, score: this.score });
+      } else {
+        // рестарт уровня с сохранёнными жизнями и счётом
+        this.scene.restart({ levelIndex: this.levelIndex, lives: this.lives, score: this.score });
+      }
+    });
   }
 }

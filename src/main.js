@@ -3,7 +3,8 @@ import { BootScene } from "./scenes/BootScene.js";
 import { MenuScene } from "./scenes/MenuScene.js";
 import { GameScene } from "./scenes/GameScene.js";
 import { UIScene } from "./scenes/UIScene.js";
-// LevelCompleteScene/GameOverScene добавляются в Task 9–12.
+import { GameOverScene } from "./scenes/GameOverScene.js";
+// LevelCompleteScene добавляется в Task 12.
 
 const gameConfig = {
   type: Phaser.AUTO,
@@ -12,7 +13,7 @@ const gameConfig = {
   backgroundColor: COLORS.bg,
   pixelArt: true,
   physics: { default: "arcade", arcade: { gravity: { y: CONFIG.gravity }, debug: false } },
-  scene: [BootScene, MenuScene, GameScene, UIScene],
+  scene: [BootScene, MenuScene, GameScene, UIScene, GameOverScene],
 };
 
 // eslint-disable-next-line no-new
