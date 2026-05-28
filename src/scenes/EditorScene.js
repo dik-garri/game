@@ -9,6 +9,7 @@
 //     которые обновляют this.level и перерисовывают.
 
 import { CONFIG } from "../config.js";
+import { LEVELS } from "../levels.js";
 
 const LEGEND = {
   "=": "tile", "^": "spike", C: "coin", P: "player", F: "flag", ".": "empty",
@@ -242,6 +243,23 @@ export class EditorScene extends Phaser.Scene {
         this.refreshToolLabel();
         this.highlightToolButton();
       });
+    });
+
+    // Выбор и загрузка готового уровня из levels.js.
+    const picker = $("ed-level-pick");
+    picker.innerHTML = LEVELS.map(
+      (l, i) => `<option value="${i}">${i + 1}. ${l.name}</option>`
+    ).join("");
+    on($("ed-level-load"), "click", () => {
+      const i = parseInt(picker.value, 10);
+      if (!Number.isFinite(i) || !LEVELS[i]) return;
+      // Делаем глубокую копию, чтобы правки не задели исходный объект.
+      this.level = normalizeLevel(JSON.parse(JSON.stringify(LEVELS[i])));
+      this.syncPanelFromLevel();
+      this.updateWorldBounds();
+      this.drawGridLines();
+      this.renderAll();
+      this.toast(`Загружен: ${LEVELS[i].name}`);
     });
 
     // Размеры/имя.
