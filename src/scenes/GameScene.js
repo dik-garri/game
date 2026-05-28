@@ -2,6 +2,7 @@ import { CONFIG } from "../config.js";
 import { LEVELS } from "../levels.js";
 import { parseLevel } from "../logic/parseLevel.js";
 import { Player } from "../entities/Player.js";
+import { Enemy } from "../entities/Enemy.js";
 import { loseLife, isGameOver } from "../logic/progress.js";
 
 export class GameScene extends Phaser.Scene {
@@ -62,6 +63,31 @@ export class GameScene extends Phaser.Scene {
     // смерть от шипов
     this.physics.add.overlap(this.player, this.spikes, () => this.die(), null, this);
 
+    // враги
+    const T = CONFIG.tileSize;
+    this.enemies = this.physics.add.group();
+    (level.enemies ?? []).forEach((e) => {
+      const enemy = new Enemy(
+        this, e.x * T + T / 2, e.y * T + T / 2,
+        e.patrol[0] * T + T / 2, e.patrol[1] * T + T / 2
+      );
+      this.enemies.add(enemy);
+    });
+    this.physics.add.collider(this.enemies, this.solids);
+
+    // игрок vs враг: прыжок сверху убивает, иначе урон.
+    // Допуск — половина высоты врага, чтобы быстрый прыжок не считался ударом сбоку.
+    this.physics.add.overlap(this.player, this.enemies, (player, enemy) => {
+      const tol = enemy.body.height * 0.5;
+      const fromAbove = player.body.velocity.y > 0 && (player.body.bottom <= enemy.body.top + tol);
+      if (fromAbove) {
+        enemy.destroy();
+        player.setVelocityY(CONFIG.enemyBounce);
+      } else {
+        this.die();
+      }
+    }, null, this);
+
     // сообщить UI стартовые значения
     // TODO(Task 8): UIScene создаётся через scene.launch и её create() выполняется
     // ПОСЛЕ этого emit. Если HUD не получает стартовые значения — Task 8 должна
@@ -73,6 +99,7 @@ export class GameScene extends Phaser.Scene {
     if (this.isDead) return;
     this.player.update();
     if (this.player.y > this.physics.world.bounds.height + 64) this.die();
+    this.enemies.getChildren().forEach((e) => e.update());
   }
 
   die() {
