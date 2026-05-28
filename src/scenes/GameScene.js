@@ -4,6 +4,7 @@ import { parseLevel } from "../logic/parseLevel.js";
 import { Player } from "../entities/Player.js";
 import { Enemy } from "../entities/Enemy.js";
 import { loseLife, isGameOver } from "../logic/progress.js";
+import { MovingPlatform } from "../entities/MovingPlatform.js";
 
 export class GameScene extends Phaser.Scene {
   constructor() { super("Game"); }
@@ -88,6 +89,17 @@ export class GameScene extends Phaser.Scene {
       }
     }, null, this);
 
+    // движущиеся платформы
+    this.platforms = this.add.group();
+    (level.movingPlatforms ?? []).forEach((p) => {
+      const mp = new MovingPlatform(
+        this, p.x * T + T / 2, p.y * T + T / 2, p.axis, p.range * T, p.speed
+      );
+      this.platforms.add(mp);
+      this.physics.add.collider(this.player, mp);
+      this.physics.add.collider(this.enemies, mp);
+    });
+
     // сообщить UI стартовые значения
     // TODO(Task 8): UIScene создаётся через scene.launch и её create() выполняется
     // ПОСЛЕ этого emit. Если HUD не получает стартовые значения — Task 8 должна
@@ -99,6 +111,14 @@ export class GameScene extends Phaser.Scene {
     if (this.isDead) return;
     this.player.update();
     if (this.player.y > this.physics.world.bounds.height + 64) this.die();
+    // обновляем платформы и провозим игрока, если он стоит сверху
+    this.platforms.getChildren().forEach((p) => {
+      p.update();
+      if (p.isRiding(this.player)) {
+        this.player.x += p.deltaX;
+        this.player.y += p.deltaY;
+      }
+    });
     this.enemies.getChildren().forEach((e) => e.update());
   }
 
