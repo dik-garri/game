@@ -22,7 +22,10 @@ export class MenuScene extends Phaser.Scene {
   }
 
   startLevel(index) {
+    // Передаём UI стартовые значения сразу, т.к. её create() выполняется ПОСЛЕ
+    // GameScene.create() — иначе UI пропустит первый 'hud-init' event.
+    // (Жизни и счёт обнуляются на каждый вход в уровень.)
     this.scene.start("Game", { levelIndex: index });
-    this.scene.launch("UI");
+    this.scene.launch("UI", { lives: 3, score: 0, level: index + 1 });
   }
 }
