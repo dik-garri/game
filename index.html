@@ -5,12 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Платформер</title>
   <style>
-    html, body { margin: 0; height: 100%; background: #0f1620; }
-    body { display: flex; align-items: center; justify-content: center; }
+    html, body { margin: 0; height: 100%; background: #0f1620; color: #e0e0e0; font-family: system-ui, -apple-system, sans-serif; }
+    body { display: flex; align-items: center; justify-content: center; gap: 20px; }
     canvas { image-rendering: pixelated; }
+
+    /* В режиме конструктора игра прижимается к левому краю, панель — справа. */
+    body.editor-mode { justify-content: flex-start; align-items: flex-start; padding: 20px; box-sizing: border-box; gap: 20px; }
+    body.editor-mode #editor-panel { display: block; }
+
+    #editor-panel {
+      display: none;
+      width: 340px; max-height: calc(100vh - 40px); overflow-y: auto;
+      background: #1a2333; padding: 16px; border-radius: 8px;
+      font-size: 13px;
+    }
+    #editor-panel h2 { margin: 0 0 12px 0; font-size: 18px; color: #ffd54f; }
+    #editor-panel h3 { margin: 16px 0 6px 0; font-size: 13px; color: #b0bec5; text-transform: uppercase; letter-spacing: 0.5px; }
+    #editor-panel .section { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #2c3e50; }
+    #editor-panel .section:last-child { border-bottom: none; }
+    #editor-panel label { display: block; margin-bottom: 6px; }
+    #editor-panel label.inline { display: inline-block; margin-right: 8px; }
+    #editor-panel input[type="number"], #editor-panel input[type="text"], #editor-panel select {
+      width: 70px; padding: 4px 6px; background: #0f1620; color: #fff;
+      border: 1px solid #2c3e50; border-radius: 4px; font-size: 13px;
+    }
+    #editor-panel input[type="text"] { width: 200px; }
+    #editor-panel button {
+      padding: 6px 12px; margin: 2px;
+      background: #2c3e50; color: #fff; border: 1px solid #34495e;
+      border-radius: 4px; cursor: pointer; font-size: 13px;
+    }
+    #editor-panel button:hover { background: #34495e; }
+    #editor-panel button.active { background: #4caf50; border-color: #4caf50; }
+    #editor-panel .tools { display: flex; flex-wrap: wrap; gap: 4px; }
+    #editor-panel .actions { display: flex; flex-wrap: wrap; gap: 4px; padding-top: 8px; }
+    #editor-panel ul { list-style: none; padding: 0; margin: 4px 0 0 0; max-height: 100px; overflow-y: auto; }
+    #editor-panel li { padding: 4px 6px; background: #0f1620; margin-bottom: 2px; border-radius: 3px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+    #editor-panel li button { padding: 2px 8px; margin: 0; font-size: 11px; background: #b71c1c; }
+    #editor-panel li button:hover { background: #d32f2f; }
+
+    #ed-toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #4caf50; color: #fff; padding: 8px 16px; border-radius: 4px;
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    }
+    #ed-toast.show { opacity: 1; }
   </style>
 </head>
 <body>
+  <div id="game-wrap"></div>
+
+  <aside id="editor-panel">
+    <h2>Конструктор уровней</h2>
+
+    <div class="section">
+      <label>Имя <input id="ed-name" type="text" value="Новый уровень"></label>
+      <label class="inline">Ширина <input id="ed-width" type="number" value="78" min="20" max="200"></label>
+      <label class="inline">Высота <input id="ed-height" type="number" value="10" min="5" max="40"></label>
+      <button id="ed-resize">Применить размер</button>
+    </div>
+
+    <div class="section">
+      <h3>Инструмент</h3>
+      <div class="tools">
+        <button data-tool="=" class="active">1: Тайл</button>
+        <button data-tool="^">2: Шип</button>
+        <button data-tool="C">3: Монета</button>
+        <button data-tool="P">4: Старт</button>
+        <button data-tool="F">5: Финиш</button>
+        <button data-tool=".">0: Стереть</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Враг (координаты в тайлах)</h3>
+      <label class="inline">x <input id="en-x" type="number" min="0" value="10"></label>
+      <label class="inline">от <input id="en-pmin" type="number" min="0" value="8"></label>
+      <label class="inline">до <input id="en-pmax" type="number" min="0" value="13"></label>
+      <button id="en-add">+ Добавить</button>
+      <ul id="enemies-list"></ul>
+    </div>
+
+    <div class="section">
+      <h3>Платформа</h3>
+      <label class="inline">x <input id="pl-x" type="number" min="0" value="15"></label>
+      <label class="inline">y <input id="pl-y" type="number" min="0" value="5"></label><br>
+      <label class="inline">ось
+        <select id="pl-axis"><option value="x">X</option><option value="y">Y</option></select>
+      </label>
+      <label class="inline">range <input id="pl-range" type="number" min="1" value="3"></label>
+      <label class="inline">speed <input id="pl-speed" type="number" min="10" value="80"></label>
+      <button id="pl-add">+ Добавить</button>
+      <ul id="platforms-list"></ul>
+    </div>
+
+    <div class="section actions">
+      <button id="ed-save">💾 Сохранить</button>
+      <button id="ed-load">📂 Загрузить</button>
+      <button id="ed-test">▶ Тест</button>
+      <button id="ed-export">📋 Экспорт JSON</button>
+      <button id="ed-import">📥 Импорт JSON</button>
+      <button id="ed-clear">🗑 Очистить</button>
+      <button id="ed-menu">← Меню</button>
+    </div>
+  </aside>
+
+  <div id="ed-toast"></div>
+
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>

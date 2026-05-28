@@ -11,14 +11,17 @@ export class GameScene extends Phaser.Scene {
 
   // Жизни сбрасываются на каждый вход в уровень (3 на уровень — см. CONFIG.livesPerLevel).
   // При рестарте уровня после смерти жизни/счёт передаются через data.
+  // customLevel + fromEditor — данные приходят из конструктора (см. EditorScene.testLevel).
   init(data) {
     this.levelIndex = data.levelIndex ?? 0;
     this.lives = data.lives ?? CONFIG.livesPerLevel;
     this.score = data.score ?? 0;
+    this.customLevel = data.customLevel ?? null;
+    this.fromEditor = !!data.fromEditor;
   }
 
   create() {
-    const level = LEVELS[this.levelIndex];
+    const level = this.customLevel ?? LEVELS[this.levelIndex];
     const parsed = parseLevel(level);
     if (!parsed.hadStart) console.error("Уровень без точки старта P");
 
@@ -108,7 +111,10 @@ export class GameScene extends Phaser.Scene {
         if (this.isDead || this.won) return;
         this.won = true;
         this.scene.stop("UI");
-        this.scene.start("LevelComplete", { levelIndex: this.levelIndex, score: this.score });
+        this.scene.start("LevelComplete", {
+          levelIndex: this.levelIndex, score: this.score,
+          fromEditor: this.fromEditor, customLevel: this.customLevel,
+        });
       }, null, this);
     }
 
@@ -141,10 +147,16 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(400, () => {
       if (isGameOver(this.lives)) {
         this.scene.stop("UI");
-        this.scene.start("GameOver", { levelIndex: this.levelIndex, score: this.score });
+        this.scene.start("GameOver", {
+          levelIndex: this.levelIndex, score: this.score,
+          fromEditor: this.fromEditor, customLevel: this.customLevel,
+        });
       } else {
         // рестарт уровня с сохранёнными жизнями и счётом
-        this.scene.restart({ levelIndex: this.levelIndex, lives: this.lives, score: this.score });
+        this.scene.restart({
+          levelIndex: this.levelIndex, lives: this.lives, score: this.score,
+          customLevel: this.customLevel, fromEditor: this.fromEditor,
+        });
       }
     });
   }
