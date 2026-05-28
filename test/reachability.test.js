@@ -14,11 +14,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LEVELS } from "../src/levels.js";
 
+// Теория (jumpVelocity=560, gravity=1200, playerSpeed=220, tileSize=32):
+// dy=0: 6.4 тайла, dy=-1: 6.8, dy=-2: 7.1, dy=+1: 6.0, dy=+2: 5.5, dy=+3: 4.9, dy=+4: 3.7.
+// Цифры ниже — теоретический предел минус 1 тайл "на неточность игрока".
+// Тест ловит реально невозможные участки, не "сложно вытянуть идеальный прыжок".
 const MAX_JUMP_UP_TILES = 4;
-// Индекс = разница высот в тайлах (от 0 до 4 вверх). Значения — макс. dx в тайлах.
-const MAX_HORIZ_BY_DY_UP = [6, 6, 5, 4, 3];
-// При спуске дальность больше (больше времени в воздухе).
-const MAX_HORIZ_DOWN = 7;
+function maxJumpDx(dy) {
+  if (dy > MAX_JUMP_UP_TILES) return -1;
+  if (dy >= 0) return [5, 5, 4, 3, 2][dy]; // вверх (или горизонтально)
+  if (dy === -1) return 6;
+  if (dy === -2) return 6;
+  return 7; // глубже dy=-3 — больше воздуха
+}
 
 function findChar(grid, ch) {
   for (let r = 0; r < grid.length; r++) {
@@ -59,10 +66,9 @@ function buildStandPoints(level) {
 // Можно ли допрыгнуть с (r1,c1) на (r2,c2)?
 function canJumpTo(r1, c1, r2, c2) {
   const dy = r1 - r2; // > 0 если прыжок ВВЕРХ
-  const dx = Math.abs(c2 - c1);
-  if (dy < 0) return dx <= MAX_HORIZ_DOWN;
-  if (dy > MAX_JUMP_UP_TILES) return false;
-  return dx <= MAX_HORIZ_BY_DY_UP[dy];
+  const max = maxJumpDx(dy);
+  if (max < 0) return false;
+  return Math.abs(c2 - c1) <= max;
 }
 
 function isLevelReachable(level) {
