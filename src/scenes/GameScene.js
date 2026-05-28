@@ -35,9 +35,10 @@ export class GameScene extends Phaser.Scene {
     this.spikes = this.physics.add.staticGroup();
     parsed.spikes.forEach((s) => {
       const spike = this.spikes.create(s.x, s.y, "spike");
+      // setSize/setOffset на StaticBody сами обновляют staticTree —
+      // refreshBody() здесь не нужен (и метод живёт на спрайте, не на body).
       spike.body.setSize(CONFIG.tileSize - 6, CONFIG.tileSize / 2);
       spike.body.setOffset(3, CONFIG.tileSize / 2);
-      spike.body.refreshBody();
     });
 
     // монеты
