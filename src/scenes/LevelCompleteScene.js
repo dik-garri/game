@@ -1,6 +1,8 @@
 import { LEVELS } from "../levels.js";
 import { CONFIG } from "../config.js";
 import { nextLevelIndex, isLastLevel } from "../logic/progress.js";
+import { sfx } from "../sounds.js";
+import { markCompleted } from "../progressStore.js";
 
 export class LevelCompleteScene extends Phaser.Scene {
   constructor() { super("LevelComplete"); }
@@ -11,6 +13,12 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.customLevel = data.customLevel ?? null;
   }
   create() {
+    sfx.win();
+    // Сохраняем прогресс только для встроенных уровней (не для тестовых из конструктора).
+    if (!this.fromEditor) {
+      const levelName = LEVELS[this.levelIndex]?.name;
+      if (levelName) markCompleted(levelName, this.score);
+    }
     const cx = this.scale.width / 2, cy = this.scale.height / 2;
     if (this.fromEditor) {
       // Тестовый прогон из конструктора — короткий экран, возврат в редактор.

@@ -5,6 +5,7 @@ import { Player } from "../entities/Player.js";
 import { Enemy } from "../entities/Enemy.js";
 import { loseLife, isGameOver } from "../logic/progress.js";
 import { MovingPlatform } from "../entities/MovingPlatform.js";
+import { sfx } from "../sounds.js";
 
 export class GameScene extends Phaser.Scene {
   constructor() { super("Game"); }
@@ -64,6 +65,7 @@ export class GameScene extends Phaser.Scene {
       coin.destroy();
       this.score += CONFIG.coinScore;
       this.events.emit("score-changed", this.score);
+      sfx.coin();
     });
 
     // смерть от шипов
@@ -89,6 +91,7 @@ export class GameScene extends Phaser.Scene {
       if (fromAbove) {
         enemy.destroy();
         player.setVelocityY(CONFIG.enemyBounce);
+        sfx.enemyKill();
       } else {
         this.die();
       }
@@ -121,6 +124,40 @@ export class GameScene extends Phaser.Scene {
     // сообщить UI стартовые значения
     // Стартовые значения HUD передаются явно через scene.launch("UI", ...) из MenuScene/LevelComplete/GameOver;
     this.events.emit("hud-init", { lives: this.lives, score: this.score, level: this.levelIndex + 1 });
+
+    this.setupTouchInput();
+  }
+
+  // Touch-управление: hold по левой половине = идти влево, по правой = вправо,
+  // свайп вверх (Δy < -30 px от точки нажатия) = прыжок (одноразово).
+  setupTouchInput() {
+    const touch = this.player.touch;
+    let startY = null;
+
+    this.input.on("pointerdown", (p) => {
+      // Игнорируем не-touch если есть клавиатура (на десктопе обычные клики не должны двигать).
+      if (p.pointerType !== "touch") return;
+      startY = p.y;
+      const left = p.x < this.scale.width / 2;
+      if (left) { touch.left = true; touch.right = false; }
+      else      { touch.right = true; touch.left = false; }
+    });
+
+    this.input.on("pointermove", (p) => {
+      if (p.pointerType !== "touch" || !p.isDown) return;
+      // Свайп вверх от точки начала касания → запрос прыжка.
+      if (startY != null && (startY - p.y) > 30) {
+        touch.jumpQueued = true;
+        startY = null; // не повторять до следующего нажатия
+      }
+    });
+
+    this.input.on("pointerup", (p) => {
+      if (p.pointerType !== "touch") return;
+      touch.left = false;
+      touch.right = false;
+      startY = null;
+    });
   }
 
   update() {
@@ -144,6 +181,7 @@ export class GameScene extends Phaser.Scene {
     this.lives = loseLife(this.lives);
     this.events.emit("life-changed", this.lives);
     this.cameras.main.flash(150, 255, 0, 0);
+    sfx.hit();
     this.time.delayedCall(400, () => {
       if (isGameOver(this.lives)) {
         this.scene.stop("UI");

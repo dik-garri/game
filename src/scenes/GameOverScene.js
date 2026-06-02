@@ -1,4 +1,5 @@
 import { CONFIG } from "../config.js";
+import { sfx } from "../sounds.js";
 
 export class GameOverScene extends Phaser.Scene {
   constructor() { super("GameOver"); }
@@ -9,6 +10,7 @@ export class GameOverScene extends Phaser.Scene {
     this.customLevel = data.customLevel ?? null;
   }
   create() {
+    sfx.gameover();
     const cx = this.scale.width / 2, cy = this.scale.height / 2;
     this.add.text(cx, cy - 60, "ИГРА ОКОНЧЕНА", { fontSize: "44px", color: "#e53935" }).setOrigin(0.5);
     this.add.text(cx, cy, `Очки: ${this.score}`, { fontSize: "24px", color: "#fff" }).setOrigin(0.5);
