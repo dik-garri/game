@@ -42,16 +42,14 @@ export class MovingPlatform extends Phaser.Physics.Arcade.Image {
   }
 
   // игрок стоит на платформе?
-  // Чистая bbox-проверка: ноги игрока в пределах 4px над верхом платформы,
-  // горизонтальное перекрытие, игрок на земле. touching.up НЕ используем —
-  // после шага физики платформа уезжает на доли пикселя за кадр, флаг моргает
-  // и игрок соскальзывал. Ложный «провоз» по этой проверке возможен, только
-  // если статичный тайл стоит ровно на пути платформы; в текущих уровнях
-  // такого нет (см. levels.js).
+  // Жёсткая bbox-проверка: ноги игрока должны быть ВПРИТЫК к верху платформы
+  // (dy ≈ 0), а не «где-то выше». Иначе игрок на floating-тайле row 4 ловит
+  // X-платформу с row 5, проезжающую на 32 px ниже, и едет вместе с ней.
   isRiding(player) {
-    return player.body.bottom <= this.body.top + 4
-      && player.body.right > this.body.left
-      && player.body.left < this.body.right
-      && player.body.blocked.down;
+    const dy = player.body.bottom - this.body.top;
+    if (dy < -2 || dy > 4) return false;
+    if (player.body.right <= this.body.left) return false;
+    if (player.body.left >= this.body.right) return false;
+    return player.body.blocked.down;
   }
 }
