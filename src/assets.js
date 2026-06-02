@@ -2,8 +2,8 @@ import { CONFIG, COLORS } from "./config.js";
 
 const T = CONFIG.tileSize;
 
-// Реестр: ключ → размеры. Используется и при генерации, и как контракт
-// для будущих спрайтов (см. ASSETS.md).
+// Реестр: ключ → размеры. Используется и при генерации placeholder, и при
+// апскейле загруженных спрайтов.
 export const ASSET_KEYS = {
   player: { w: T - 4, h: T - 2 },
   enemy:  { w: T - 6, h: T - 6 },
@@ -14,9 +14,19 @@ export const ASSET_KEYS = {
   flag:   { w: T, h: T },
 };
 
-// Генерирует placeholder-текстуры. Вызывается из BootScene.
-// ЗАМЕНА НА СПРАЙТЫ: заменить тело этой функции на scene.load.image/spritesheet
-// (см. ASSETS.md). Остальной код ссылается на текстуры по ключам и не меняется.
+// Спрайты Kenney (18×18, CC0). Имена ключей соответствуют ASSET_KEYS.
+// «spike» в паке нет — генерируется placeholder-треугольником.
+export const SPRITE_FILES = {
+  player:   "assets/sprites/player.png",
+  enemy:    "assets/sprites/enemy.png",
+  coin:     "assets/sprites/coin.png",
+  tile:     "assets/sprites/tile.png",
+  platform: "assets/sprites/platform.png",
+  flag:     "assets/sprites/flag.png",
+};
+
+// Регистрирует все placeholder-текстуры (используются как фолбэк, если
+// картинка не загрузилась, и для спайка, которого в паке нет).
 export function createPlaceholderTextures(scene) {
   const g = scene.make.graphics({ x: 0, y: 0, add: false });
 
@@ -39,7 +49,7 @@ export function createPlaceholderTextures(scene) {
     g.generateTexture("coin", w, w);
   }
 
-  // шип — треугольник
+  // шип — треугольник (постоянный placeholder, спрайта в паке Kenney нет)
   {
     const { w, h } = ASSET_KEYS.spike;
     g.clear(); g.fillStyle(COLORS.spike, 1);
@@ -49,4 +59,28 @@ export function createPlaceholderTextures(scene) {
   }
 
   g.destroy();
+}
+
+// Берёт загруженный спрайт по ключу `${key}_raw` (см. preload в BootScene)
+// и сохраняет его под `key`, отмасштабировав до целевых размеров ASSET_KEYS.
+// pixelArt: true в конфиге обеспечивает nearest-neighbor — масштабирование
+// остаётся резким, без размытия.
+//
+// Если raw-текстуры нет (файл не загрузился) — оставляем placeholder, который
+// уже зарегистрирован под этим же ключом.
+export function applyLoadedSprites(scene) {
+  for (const key of Object.keys(SPRITE_FILES)) {
+    const rawKey = `${key}_raw`;
+    if (!scene.textures.exists(rawKey)) continue;
+    const { w, h } = ASSET_KEYS[key];
+    const rt = scene.add.renderTexture(0, 0, w, h).setVisible(false);
+    const img = scene.add.image(0, 0, rawKey).setOrigin(0).setVisible(false);
+    img.setDisplaySize(w, h);
+    rt.draw(img, 0, 0);
+    // Заменяем placeholder в кэше текстур: удаляем старый, сохраняем новый.
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    rt.saveTexture(key);
+    img.destroy();
+    rt.destroy();
+  }
 }
