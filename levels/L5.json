@@ -71,18 +71,18 @@
       "speed": 70
     },
     {
-      "x": 46,
-      "y": 5,
-      "axis": "x",
-      "range": 2,
-      "speed": 90
-    },
-    {
       "x": 68,
       "y": 5,
       "axis": "y",
       "range": 2,
       "speed": 70
+    },
+    {
+      "x": 44,
+      "y": 5,
+      "axis": "x",
+      "range": 2,
+      "speed": 80
     }
   ]
 }
