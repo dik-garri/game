@@ -1,224 +1,74 @@
-// Символы карты: '=' тайл, '^' шип, 'C' монета, 'P' старт, 'F' флаг, '.' пусто.
-// enemies: { x, y } в ТАЙЛАХ; patrol [minTile, maxTile] в тайлах.
-// movingPlatforms: { x, y } в тайлах; axis 'x'|'y'; range в тайлах; speed px/с.
+// Загружает встроенные уровни из levels/*.json и опубликованные пользовательские
+// из localStorage. Работает в обеих средах: браузер (fetch) и Node (fs) для тестов.
+//
+// Структура каталога:
+//   levels/index.json — ["L1", "L2", ...]  (порядок появления в меню)
+//   levels/L1.json    — { name, tileSize, legend, map, enemies, movingPlatforms }
+//   localStorage["platformer-published-levels"] — массив таких же объектов
+//
+// Куда добавить новый уровень в код:
+//   1) Положить levels/L6.json
+//   2) Дописать "L6" в levels/index.json
+// Уровни из конструктора публикуются в localStorage кнопкой «💾 Сохранить» —
+// в src не пишутся, чтобы не требовать бэкенда.
 
-const LEGEND = {
-  "=": "tile", "^": "spike", C: "coin", P: "player", F: "flag", ".": "empty",
-};
+const PUBLISHED_KEY = "platformer-published-levels";
 
-// Все уровни шириной W = 78 тайлов (~24.5 экрана при canvas 832 px).
-// Хелперы помогают собрать строку нужной длины: row() бросит на старте
-// при опечатке в количестве символов — ловим ошибку при загрузке, не в браузере.
-const W = 78;
-const d = (n) => ".".repeat(n);
-const e = (n) => "=".repeat(n);
-const s = (n) => "^".repeat(n);
-const row = (...parts) => {
-  const r = parts.join("");
-  if (r.length !== W) throw new Error(`row length ${r.length} != ${W}: "${r}"`);
-  return r;
-};
-// Нижний слой пола: ^ и F превращаются в =, точки остаются точками.
-const lower = (top) => top.replace(/[\^F]/g, "=");
+async function loadJson(relPath) {
+  // URL относительно этого модуля — работает и в браузере (fetch), и в Node (fs).
+  // Так путь не зависит от того, под каким префиксом игра обслуживается.
+  const url = new URL(relPath, import.meta.url);
+  if (typeof window !== "undefined") {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Не удалось загрузить ${url}: ${r.status}`);
+    return r.json();
+  }
+  const { readFile } = await import("node:fs/promises");
+  return JSON.parse(await readFile(url, "utf8"));
+}
 
-// =============================================================================
-// L1: Разминка — 10 строк, 2 врага, без платформ
-// =============================================================================
-// Все ямы ≤ 5 тайлов (max прыжок на dy=0 = 5). Где спайки на полу row 8 —
-// прыжок dy=-1 (вниз на 1) с max dx = 6.
-const L1_floor = row(
-  // 0-3: старт; 4-7: яма; 8-10: шипы (row 8 пол); 11: яма; 12-19: пол (враг 1)
-  e(4),  d(4),  s(3),  d(1),  e(8),
-  // 20-23: яма; 24-25: островок; 26-29: яма; 30-37: пол (враг 2)
-  d(4),  e(2),  d(4),  e(8),
-  // 38-40: яма; 41-42: шипы; 43-45: яма; 46-50: пол; 51-54: яма; 55-75: финал
-  d(3),  s(2),  d(3),  e(5),  d(4),  e(21),
-  "F",   d(1)
-);
-const L1 = {
-  name: "Разминка",
-  tileSize: 32,
-  legend: LEGEND,
-  map: [
-    row(d(W)),
-    row(d(W)),
-    row(d(9),  "C", d(20), "C", d(20), "C", d(26)),
-    row(d(14), "C", d(19), "C", d(19), "C", d(23)),
-    row(d(7),  e(6), d(15), e(5), d(15), e(6), d(24)),
-    row(d(2),  "C", d(33), "C", d(20), "C", d(20)),
-    row("P",   d(W - 1)),
-    L1_floor,
-    lower(L1_floor),
-    lower(L1_floor),
-  ],
-  enemies: [
-    { x: 16, y: 6, patrol: [14, 19] },
-    { x: 33, y: 6, patrol: [30, 37] },
-  ],
-  movingPlatforms: [],
-};
+async function loadBuiltIn() {
+  const names = await loadJson("../levels/index.json");
+  return Promise.all(names.map((n) => loadJson(`../levels/${n}.json`)));
+}
 
-// =============================================================================
-// L2: Перепрыгни — 9 строк, 2 врага, 3 X-платформы
-// =============================================================================
-const L2_floor = row(
-  // S1 0-25
-  e(3), d(1), e(4), d(2), s(4), d(7), e(5),
-  // S2 26-51
-  e(4), d(5), s(3), d(1), e(6), d(2), e(5),
-  // S3 52-77
-  d(4), e(8), d(3), e(6), e(3), "F", d(1)
-);
-const L2 = {
-  name: "Перепрыгни",
-  tileSize: 32,
-  legend: LEGEND,
-  map: [
-    row(d(W)),
-    row(d(15), "C", d(24), "C", d(29), "C", d(7)),
-    row(d(W)),
-    row(d(5),  "C", d(11), "C", d(13), "C", d(19), "C", d(14), "C", d(11)),
-    row(d(4),  e(3), d(9),  e(3), d(11), e(3), d(17), e(3), d(12), e(3), d(10)),
-    row(d(W)),
-    row("P",   d(5),  "C", d(14), "C", d(9),  "C", d(15), "C", d(8), "C", d(13), "C", d(7)),
-    L2_floor,
-    lower(L2_floor),
-  ],
-  enemies: [
-    { x: 5,  y: 5, patrol: [4, 7] },
-    { x: 59, y: 5, patrol: [56, 63] },
-  ],
-  movingPlatforms: [
-    { x: 11, y: 5, axis: "x", range: 4, speed: 80 },
-    { x: 33, y: 5, axis: "x", range: 4, speed: 80 },
-    { x: 54, y: 5, axis: "x", range: 4, speed: 80 },
-  ],
-};
+function loadPublished() {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const s = localStorage.getItem(PUBLISHED_KEY);
+    const arr = s ? JSON.parse(s) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
 
-// =============================================================================
-// L3: Финальный рывок — 9 строк, 3 врага, Y- и X-платформы
-// =============================================================================
-const L3_floor = row(
-  // S1 0-25
-  e(3), d(1), e(9), d(4), s(3), e(6),
-  // S2 26-51 — pit+spike+pit без островка давали неперепрыгиваемые 6+2+6.
-  // Островок e(2) на cols 41-42 разбивает их на 4+4 (легко перепрыгнуть).
-  d(5), e(6), d(4), e(2), d(4), e(5),
-  // S3 52-77 — финальные шипы сдвинуты, пол перед F расширен.
-  d(4), e(8), d(4), s(2), d(2), e(4), "F", d(1)
-);
-const L3 = {
-  name: "Финальный рывок",
-  tileSize: 32,
-  legend: LEGEND,
-  map: [
-    row(d(W)),
-    row(d(12), "C", d(25), "C", d(26), "C", d(12)),
-    row(d(8),  "C", d(25), "C", d(23), "C", d(19)),
-    row(d(4),  "C", d(42), "C", d(24), "C", d(5)),
-    row(d(3),  e(3), d(30), e(3), d(28), e(3), d(8)),
-    row(d(14), "C", d(4),  "C", d(28), "C", d(15), "C", d(13)),
-    row("P",   d(4), s(2), d(23), "C", d(25), "C", d(21)),
-    L3_floor,
-    lower(L3_floor),
-  ],
-  enemies: [
-    { x: 9,  y: 6, patrol: [8, 12] },
-    { x: 22, y: 6, patrol: [20, 25] },
-    { x: 59, y: 6, patrol: [56, 63] },
-  ],
-  movingPlatforms: [
-    { x: 13, y: 4, axis: "y", range: 2, speed: 60 },
-    { x: 29, y: 5, axis: "x", range: 3, speed: 80 },
-  ],
-};
+const builtIn = await loadBuiltIn();
+const published = loadPublished();
 
-// =============================================================================
-// L4: Лабиринт препятствий — 10 строк, 4 врага, 3 платформы (X и Y)
-// =============================================================================
-// Все ямы ≤ 4 тайлов (max прыжок dy=0 = 5 → крайний случай dx=5 при пропасти 4).
-// Платформы — бонусные, не обязательные для прохождения.
-const L4_floor = row(
-  // 0-12: старт + первая площадка с врагом 1
-  e(5), d(3), e(5),
-  // 13-29: яма-пол-яма-шипы-яма
-  d(4), e(4), d(3), s(3), d(3),
-  // 30-43: пол с врагом 2, шипы посередине
-  e(5), d(3), s(3), d(3),
-  // 44-57: пол с врагом 3, яма
-  e(5), d(4), e(5),
-  // 58-77: финал
-  d(3), e(4), d(3), e(8), "F", d(1)
-);
-const L4 = {
-  name: "Лабиринт препятствий",
-  tileSize: 32,
-  legend: LEGEND,
-  map: [
-    row(d(W)),
-    row(d(8),  "C", d(15), "C", d(15), "C", d(15), "C", d(15), "C", d(5)),
-    row(d(W)),
-    row(d(4),  "C", d(10), "C", d(10), "C", d(10), "C", d(10), "C", d(10), "C", d(10), "C", d(7)),
-    row(d(5),  e(2), d(13), e(2), d(13), e(2), d(13), e(2), d(13), e(2), d(11)),
-    row(d(W)),
-    row("P",   d(W - 1)),
-    L4_floor,
-    lower(L4_floor),
-    lower(L4_floor),
-  ],
-  enemies: [
-    { x: 10, y: 6, patrol: [8, 12] },
-    { x: 32, y: 6, patrol: [30, 34] },
-    { x: 46, y: 6, patrol: [44, 48] },
-    { x: 72, y: 6, patrol: [70, 75] },
-  ],
-  // Платформы — бонусные элементы; каждая яма проходима и без них.
-  movingPlatforms: [
-    { x: 15, y: 5, axis: "x", range: 2, speed: 70 },
-    { x: 40, y: 5, axis: "y", range: 2, speed: 50 },
-    { x: 62, y: 5, axis: "x", range: 2, speed: 70 },
-  ],
-};
+export const LEVELS = [...builtIn, ...published];
+export const BUILTIN_COUNT = builtIn.length;
+export const PUBLISHED_LEVELS_KEY = PUBLISHED_KEY;
 
-// =============================================================================
-// L5: Финал — 10 строк, 4 врага, 4 платформы (X и Y), плотные шипы
-// =============================================================================
-const L5_floor = row(
-  // 0-25
-  e(4), d(3), s(2), e(5), d(5), e(4), s(3),
-  // 26-51
-  d(6), e(5), d(3), s(4), d(5), e(4),
-  // 52-77
-  s(2), d(3), e(5), s(3), d(4), e(6), "F", d(1)
-);
-const L5 = {
-  name: "Финал",
-  tileSize: 32,
-  legend: LEGEND,
-  map: [
-    row(d(W)),
-    row(d(15), "C", d(15), "C", d(15), "C", d(15), "C", d(14)),
-    row(d(W)),
-    row(d(5),  "C", d(9), "C", d(9), "C", d(9), "C", d(9), "C", d(9), "C", d(9), "C", d(9), "C", d(2)),
-    row(d(5),  e(2), d(18), e(2), d(18), e(2), d(18), e(2), d(11)),
-    row(d(20), "C", d(20), "C", d(20), "C", d(15)),
-    row("P",   d(W - 1)),
-    L5_floor,
-    lower(L5_floor),
-    lower(L5_floor),
-  ],
-  enemies: [
-    { x: 11, y: 6, patrol: [9, 13] },
-    { x: 34, y: 6, patrol: [32, 36] },
-    { x: 60, y: 6, patrol: [58, 62] },
-    { x: 72, y: 6, patrol: [70, 75] },
-  ],
-  movingPlatforms: [
-    { x: 16, y: 5, axis: "x", range: 2, speed: 90 },
-    { x: 29, y: 5, axis: "y", range: 2, speed: 70 },
-    { x: 46, y: 5, axis: "x", range: 2, speed: 90 },
-    { x: 68, y: 5, axis: "y", range: 2, speed: 70 },
-  ],
-};
+// Помощник для EditorScene/MenuScene: сохранить или обновить уровень в опубликованных
+// (поиск по name; если найден — заменяет, иначе добавляет).
+export function publishLevel(level) {
+  const arr = loadPublished();
+  const i = arr.findIndex((l) => l.name === level.name);
+  // Глубокая копия, чтобы дальнейшие правки в редакторе не задели хранилище.
+  const clone = JSON.parse(JSON.stringify(level));
+  if (i >= 0) arr[i] = clone; else arr.push(clone);
+  localStorage.setItem(PUBLISHED_KEY, JSON.stringify(arr));
+  return arr;
+}
 
-export const LEVELS = [L1, L2, L3, L4, L5];
+export function unpublishLevel(name) {
+  const arr = loadPublished().filter((l) => l.name !== name);
+  localStorage.setItem(PUBLISHED_KEY, JSON.stringify(arr));
+  return arr;
+}
+
+// Возвращает свежий список опубликованных (не из кэша LEVELS, а из localStorage).
+export function getPublishedLevels() {
+  return loadPublished();
+}

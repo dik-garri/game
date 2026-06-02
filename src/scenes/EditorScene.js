@@ -9,7 +9,7 @@
 //     которые обновляют this.level и перерисовывают.
 
 import { CONFIG } from "../config.js";
-import { LEVELS } from "../levels.js";
+import { LEVELS, BUILTIN_COUNT, publishLevel, unpublishLevel, getPublishedLevels } from "../levels.js";
 
 const LEGEND = {
   "=": "tile", "^": "spike", C: "coin", P: "player", F: "flag", ".": "empty",
@@ -245,21 +245,40 @@ export class EditorScene extends Phaser.Scene {
       });
     });
 
-    // Выбор и загрузка готового уровня из levels.js.
-    const picker = $("ed-level-pick");
-    picker.innerHTML = LEVELS.map(
-      (l, i) => `<option value="${i}">${i + 1}. ${l.name}</option>`
-    ).join("");
+    // Выбор и загрузка готового уровня (встроенный или опубликованный из localStorage).
+    this.refreshLevelPicker();
     on($("ed-level-load"), "click", () => {
-      const i = parseInt(picker.value, 10);
-      if (!Number.isFinite(i) || !LEVELS[i]) return;
-      // Делаем глубокую копию, чтобы правки не задели исходный объект.
-      this.level = normalizeLevel(JSON.parse(JSON.stringify(LEVELS[i])));
+      const val = $("ed-level-pick").value;
+      let level;
+      if (val.startsWith("pub:")) {
+        const name = val.slice(4);
+        level = getPublishedLevels().find((l) => l.name === name);
+      } else {
+        const i = parseInt(val, 10);
+        if (Number.isFinite(i)) level = LEVELS[i];
+      }
+      if (!level) return;
+      this.level = normalizeLevel(JSON.parse(JSON.stringify(level)));
       this.syncPanelFromLevel();
       this.updateWorldBounds();
       this.drawGridLines();
       this.renderAll();
-      this.toast(`Загружен: ${LEVELS[i].name}`);
+      this.toast(`Загружен: ${level.name}`);
+    });
+
+    // Публикация в меню (опубликованные уровни попадают в LEVELS при перезагрузке страницы).
+    on($("ed-publish"), "click", () => {
+      const all = this.level.map.join("");
+      if (!all.includes("P") || !all.includes("F")) {
+        alert("Перед публикацией в меню укажи P (старт) и F (финиш)");
+        return;
+      }
+      publishLevel(this.level);
+      this.toast(`«${this.level.name}» добавлен в меню (обнови страницу)`);
+    });
+    on($("ed-unpublish"), "click", () => {
+      const remaining = unpublishLevel(this.level.name);
+      this.toast(`«${this.level.name}» убран из меню (${remaining.length} осталось)`);
     });
 
     // Размеры/имя.
@@ -331,7 +350,25 @@ export class EditorScene extends Phaser.Scene {
     document.getElementById("ed-width").value = this.level.map[0].length;
     document.getElementById("ed-height").value = this.level.map.length;
     this.refreshLists();
+    this.refreshLevelPicker();
     this.highlightToolButton();
+  }
+
+  refreshLevelPicker() {
+    const picker = document.getElementById("ed-level-pick");
+    if (!picker) return;
+    // Опубликованные подгружаем СВЕЖИМИ из localStorage (LEVELS захватил их при старте страницы).
+    const published = getPublishedLevels();
+    const opts = [];
+    for (let i = 0; i < BUILTIN_COUNT; i++) {
+      opts.push(`<option value="${i}">${i + 1}. ${LEVELS[i].name}</option>`);
+    }
+    published.forEach((l, j) => {
+      // Виртуальный индекс: ставим минус, отличающий от настоящего LEVELS[i].
+      // (Загружаем по имени через специальный код ниже.)
+      opts.push(`<option value="pub:${l.name}">⭐ ${l.name}</option>`);
+    });
+    picker.innerHTML = opts.join("");
   }
 
   refreshLists() {
