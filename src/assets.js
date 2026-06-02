@@ -70,17 +70,22 @@ export function createPlaceholderTextures(scene) {
 // уже зарегистрирован под этим же ключом.
 export function applyLoadedSprites(scene) {
   for (const key of Object.keys(SPRITE_FILES)) {
-    const rawKey = `${key}_raw`;
-    if (!scene.textures.exists(rawKey)) continue;
-    const { w, h } = ASSET_KEYS[key];
-    const rt = scene.add.renderTexture(0, 0, w, h).setVisible(false);
-    const img = scene.add.image(0, 0, rawKey).setOrigin(0).setVisible(false);
-    img.setDisplaySize(w, h);
-    rt.draw(img, 0, 0);
-    // Заменяем placeholder в кэше текстур: удаляем старый, сохраняем новый.
-    if (scene.textures.exists(key)) scene.textures.remove(key);
-    rt.saveTexture(key);
-    img.destroy();
-    rt.destroy();
+    upscaleRawIntoKey(scene, `${key}_raw`, key);
   }
+}
+
+// Утилита: rawKey → upscale до размеров ASSET_KEYS[targetKey] → сохраняем
+// под targetKey, заменив старую текстуру (если была).
+export function upscaleRawIntoKey(scene, rawKey, targetKey) {
+  if (!scene.textures.exists(rawKey)) return false;
+  const { w, h } = ASSET_KEYS[targetKey];
+  const rt = scene.add.renderTexture(0, 0, w, h).setVisible(false);
+  const img = scene.add.image(0, 0, rawKey).setOrigin(0).setVisible(false);
+  img.setDisplaySize(w, h);
+  rt.draw(img, 0, 0);
+  if (scene.textures.exists(targetKey)) scene.textures.remove(targetKey);
+  rt.saveTexture(targetKey);
+  img.destroy();
+  rt.destroy();
+  return true;
 }

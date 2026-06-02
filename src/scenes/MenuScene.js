@@ -1,6 +1,7 @@
 import { LEVELS } from "../levels.js";
 import { getProgress, resetProgress } from "../progressStore.js";
 import { isMuted, toggleMute } from "../sounds.js";
+import { savePhoto, clearPhoto, hasPhoto } from "../heroPhoto.js";
 
 export class MenuScene extends Phaser.Scene {
   constructor() { super("Menu"); }
@@ -26,13 +27,35 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Конструктор
-    const editorBtn = this.add.text(cx, 190 + LEVELS.length * 42 + 30,
+    const editorY = 190 + LEVELS.length * 42 + 30;
+    const editorBtn = this.add.text(cx, editorY,
       "🔧 Открыть конструктор уровней",
       { fontSize: "20px", color: "#ffd54f" })
       .setOrigin(0.5).setInteractive();
     editorBtn.on("pointerover", () => editorBtn.setColor("#fff176"));
     editorBtn.on("pointerout", () => editorBtn.setColor("#ffd54f"));
     editorBtn.on("pointerdown", () => this.scene.start("Editor"));
+
+    // Фото героя
+    const photoLabel = hasPhoto() ? "📷 Сменить фото героя" : "📷 Загрузить фото героя";
+    const photoBtn = this.add.text(cx, editorY + 36, photoLabel,
+      { fontSize: "16px", color: "#90caf9" })
+      .setOrigin(0.5).setInteractive();
+    photoBtn.on("pointerover", () => photoBtn.setColor("#bbdefb"));
+    photoBtn.on("pointerout", () => photoBtn.setColor("#90caf9"));
+    photoBtn.on("pointerdown", () => this.openPhotoPicker());
+
+    if (hasPhoto()) {
+      const resetPhoto = this.add.text(cx, editorY + 58, "(вернуть стандартного)",
+        { fontSize: "12px", color: "#777" })
+        .setOrigin(0.5).setInteractive();
+      resetPhoto.on("pointerover", () => resetPhoto.setColor("#aaa"));
+      resetPhoto.on("pointerout", () => resetPhoto.setColor("#777"));
+      resetPhoto.on("pointerdown", () => {
+        clearPhoto();
+        location.reload();
+      });
+    }
 
     // Mute-кнопка в правом верхнем углу.
     this.muteBtn = this.add.text(this.scale.width - 16, 16, this.muteIcon(),
@@ -61,6 +84,27 @@ export class MenuScene extends Phaser.Scene {
   }
 
   muteIcon() { return isMuted() ? "🔇" : "🔊"; }
+
+  openPhotoPicker() {
+    const input = document.getElementById("hero-photo-input");
+    if (!input) return;
+    // Перезаписываем onchange каждый раз (а не addEventListener), чтобы при
+    // повторных открытиях не вешать новые обработчики поверх старых.
+    input.value = "";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        await savePhoto(file, 32);
+        // Простейший способ применить — перезагрузить страницу, BootScene
+        // подхватит фото из localStorage и заменит текстуру player.
+        location.reload();
+      } catch (e) {
+        alert("Не получилось: " + e.message);
+      }
+    };
+    input.click();
+  }
 
   startLevel(index) {
     this.scene.start("Game", { levelIndex: index });
