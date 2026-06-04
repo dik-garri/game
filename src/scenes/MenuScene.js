@@ -95,7 +95,7 @@ export class MenuScene extends Phaser.Scene {
       const file = input.files?.[0];
       if (!file) return;
       try {
-        await savePhoto(file, 32);
+        await savePhoto(file);
         // Простейший способ применить — перезагрузить страницу, BootScene
         // подхватит фото из localStorage и заменит текстуру player.
         location.reload();
