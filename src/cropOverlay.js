@@ -125,7 +125,13 @@ export function openCropOverlay(dataUrl) {
       canvas.width = Math.round(ns);
       canvas.height = Math.round(ns);
       const ctx = canvas.getContext("2d");
+      // Круглая маска: рисуем фото только внутри круга, углы остаются прозрачными.
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2);
+      ctx.clip();
       ctx.drawImage(imgEl, nx, ny, ns, ns, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
 
       const out = new Image();
       out.onload = () => finish(out);

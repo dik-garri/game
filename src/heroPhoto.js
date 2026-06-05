@@ -53,11 +53,10 @@ export function composeAndSave(croppedImg) {
   return composite;
 }
 
-// ----- сборка спрайта (chibi: большая голова сверху, тело снизу) -----
+// ----- сборка спрайта: большое круглое лицо + ноги -----
 // Координатная карта (28×30):
-//   y 0..3   — шапка
-//   y 3..21  — голова (рамка-кожа + фото-лицо внутри)
-//   y 21..30 — тело: плечи/руки, комбинезон, ботинки
+//   y 1..23  — голова-круг (контур + кожа + круглое фото-лицо)
+//   y 23..30 — две ноги в ботинках
 function composePlayerSprite(photoImg) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -65,43 +64,36 @@ function composePlayerSprite(photoImg) {
   const ctx = canvas.getContext("2d");
   ctx.imageSmoothingEnabled = false;
   const F = (color, x, y, w, h) => { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); };
+  const disc = (color, cx, cy, r) => {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  };
 
-  // --- Голова: тёмный контур + кожа-рамка ---
-  // Контур головы (на 1px шире кожи со всех сторон).
-  F(COLORS.outline, 3, 2, 22, 20);
-  // Кожа-основа головы.
-  F(COLORS.skin, 4, 3, 20, 18);
+  const HEAD = { cx: 14, cy: 12, r: 12 };
 
-  // --- Шапка поверх верха головы ---
-  F(COLORS.cap, 4, 3, 20, 4);      // основная красная полоса
-  F(COLORS.cap, 6, 1, 16, 2);      // макушка чуть выше
-  F(COLORS.capShade, 4, 7, 20, 1); // тень под кромкой шапки (козырёк)
+  // --- Ноги (рисуем ПЕРВЫМИ, чтобы голова перекрыла их верх) ---
+  F(COLORS.outline, 8, 22, 13, 8);     // тёмный контур тела-ног
+  F(COLORS.overalls, 9, 23, 4, 4);     // левая штанина
+  F(COLORS.overalls, 15, 23, 4, 4);    // правая штанина
+  F(COLORS.boot, 9, 27, 4, 3);         // левый ботинок
+  F(COLORS.boot, 15, 27, 4, 3);        // правый ботинок
 
-  // --- Лицо из фото: квадратный crop в окно головы ---
-  const FACE = { x: 6, y: 8, w: 16, h: 12 };
+  // --- Голова: контур-круг → кожа-круг → круглое фото-лицо ---
+  disc(COLORS.outline, HEAD.cx, HEAD.cy, HEAD.r);       // тёмный ободок
+  disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);      // кожа (виден тонкий ободок)
+
+  // Лицо: клип по кругу (r-2), фото вписывается в bounding box.
+  const fr = HEAD.r - 2; // радиус лица
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(HEAD.cx, HEAD.cy, fr, 0, Math.PI * 2);
+  ctx.clip();
   const min = Math.min(photoImg.width, photoImg.height);
   const sx = (photoImg.width - min) / 2;
   const sy = (photoImg.height - min) / 2;
-  ctx.drawImage(photoImg, sx, sy, min, min, FACE.x, FACE.y, FACE.w, FACE.h);
-
-  // --- Тело снизу (y 21..30) ---
-  // Контур тела.
-  F(COLORS.outline, 6, 21, 16, 9);
-  // Плечи/руки (кожа) по бокам.
-  F(COLORS.skin, 7, 22, 3, 5);
-  F(COLORS.skin, 18, 22, 3, 5);
-  // Комбинезон (синий) в центре.
-  F(COLORS.overalls, 10, 22, 8, 8);
-  F(COLORS.overallsShade, 10, 27, 8, 1); // тень внизу комбинезона
-  // Лямки к плечам.
-  F(COLORS.overalls, 10, 21, 2, 2);
-  F(COLORS.overalls, 16, 21, 2, 2);
-  // Пуговицы.
-  F(COLORS.button, 11, 24, 2, 2);
-  F(COLORS.button, 15, 24, 2, 2);
-  // Ботинки (коричневые, две ноги, нижний ряд).
-  F(COLORS.boot, 8, 28, 5, 2);
-  F(COLORS.boot, 15, 28, 5, 2);
+  ctx.drawImage(photoImg, sx, sy, min, min,
+    HEAD.cx - fr, HEAD.cy - fr, fr * 2, fr * 2);
+  ctx.restore();
 
   return canvas.toDataURL("image/png");
 }
