@@ -4,7 +4,10 @@ import { sfx } from "../sounds.js";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
-    super(scene, x, y, "player");
+    // Текстура: анимированный фото-герой ("hero_sheet") или статичный дефолт.
+    const key = scene.registry.get("playerKey") || "player";
+    super(scene, x, y, key);
+    this.animated = !!scene.registry.get("playerAnimated");
     scene.add.existing(this);
     scene.physics.add.existing(this);
     // Текстура 28×42 (голова сверху). Коллизия — 28×30 по центру текстуры,
@@ -18,6 +21,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.keys = scene.input.keyboard.addKeys({ a: "A", d: "D", w: "W", space: "SPACE" });
     // Состояние touch-управления (пишется в GameScene из pointer-событий).
     this.touch = { left: false, right: false, jumpQueued: false };
+    if (this.animated) this.play("hero-idle");
   }
 
   update() {
@@ -35,5 +39,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       sfx.jump();
     }
     this.touch.jumpQueued = false; // потребляем одиночный «прыжок» из свайпа
+
+    // Анимация: шагаем при горизонтальном движении, иначе стоим.
+    if (this.animated) {
+      const moving = Math.abs(this.body.velocity.x) > 1;
+      this.play(moving ? "hero-walk" : "hero-idle", true);
+    }
   }
 }

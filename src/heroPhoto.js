@@ -8,9 +8,13 @@
 
 const KEY = "platformer-hero-photo";
 
-// Размер текстуры игрока — должен совпадать с ASSET_KEYS.player в assets.js.
+// Размер ОДНОГО кадра — должен совпадать с ASSET_KEYS.player в assets.js.
 const W = 28;
 const H = 42;
+
+// Спрайт-лист: кадр 0 = idle, кадры 1–2 = шаги ходьбы. Экспортируется,
+// чтобы BootScene загрузил dataURL как spritesheet с этими размерами.
+export const PLAYER_FRAMES = { frameWidth: W, frameHeight: H, count: 3 };
 
 // Палитра — классические Mario-цвета + контур.
 const COLORS = {
@@ -53,58 +57,93 @@ export function composeAndSave(croppedImg) {
   return composite;
 }
 
-// ----- сборка спрайта: большое круглое лицо + ноги -----
-// Координатная карта (28×42):
-//   y 0..28  — голова-круг (контур + кожа + круглое фото-лицо, диаметр ~26)
-//   y 27..42 — две ноги в ботинках
+// ----- сборка спрайт-листа (3 кадра по 28×42) -----
+// Кадр 0 — idle (руки разведены и приподняты, ноги ровно).
+// Кадр 1 — шаг A (левая рука выше, левая нога поднята).
+// Кадр 2 — шаг B (правая рука выше, правая нога поднята).
 function composePlayerSprite(photoImg) {
   const canvas = document.createElement("canvas");
-  canvas.width = W;
+  canvas.width = W * PLAYER_FRAMES.count;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = true;     // гладкий портрет, не пиксельная каша
+  ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  const F = (color, x, y, w, h) => { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); };
+
+  const poses = [
+    { armL: "out", armR: "out", legL: "plant", legR: "plant" }, // idle
+    { armL: "up",  armR: "out", legL: "lift",  legR: "plant" }, // шаг A
+    { armL: "out", armR: "up",  legL: "plant", legR: "lift"  }, // шаг B
+  ];
+  poses.forEach((pose, i) => drawHeroFrame(ctx, i * W, photoImg, pose));
+
+  return canvas.toDataURL("image/png");
+}
+
+// Рисует один кадр героя со сдвигом ox по X.
+function drawHeroFrame(ctx, ox, photoImg, pose) {
+  const F = (color, x, y, w, h) => { ctx.fillStyle = color; ctx.fillRect(ox + x, y, w, h); };
   const disc = (color, cx, cy, r) => {
     ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ox + cx, cy, r, 0, Math.PI * 2); ctx.fill();
   };
 
-  const HEAD = { cx: 14, cy: 14, r: 14 }; // круг почти во всю ширину
+  const HEAD = { cx: 14, cy: 14, r: 14 };
 
-  // --- Ноги (рисуем ПЕРВЫМИ, голова перекроет их верх) ---
-  // Низ ног на y36 = низ коллизии (28×30 центрирована, тело y6..36), чтобы
-  // ботинки стояли на земле, а не уходили в тайл.
-  F(COLORS.outline, 7, 27, 14, 9);     // тёмный контур ног
-  F(COLORS.overalls, 8, 28, 5, 5);     // левая штанина
-  F(COLORS.overalls, 15, 28, 5, 5);    // правая штанина
-  F(COLORS.boot, 8, 33, 5, 3);         // левый ботинок
-  F(COLORS.boot, 15, 33, 5, 3);        // правый ботинок
+  // --- Ноги (рисуем первыми; lift = нога приподнята на 2px) ---
+  drawLeg(F, 8, pose.legL === "lift");
+  drawLeg(F, 15, pose.legR === "lift");
 
-  // --- Ручки по бокам (под головой, у плеч) ---
-  F(COLORS.outline, 3, 25, 4, 7);      // контур левой руки
-  F(COLORS.skin, 4, 26, 2, 5);         // левая рука (кожа)
-  F(COLORS.outline, 21, 25, 4, 7);     // контур правой руки
-  F(COLORS.skin, 22, 26, 2, 5);        // правая рука (кожа)
+  // --- Ручки (out = в сторону и чуть вверх; up = поднята) ---
+  drawArm(F, "L", pose.armL);
+  drawArm(F, "R", pose.armR);
 
-  // --- Голова: контур-круг → кожа-круг → круглое фото-лицо ---
-  disc(COLORS.outline, HEAD.cx, HEAD.cy, HEAD.r);       // тёмный ободок
-  disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);      // кожа (тонкий ободок)
+  // --- Голова: контур → кожа → круглое фото-лицо ---
+  disc(COLORS.outline, HEAD.cx, HEAD.cy, HEAD.r);
+  disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);
 
-  // Лицо: клип по кругу (r-2 ≈ 12 → диаметр 24), фото в bounding box.
   const fr = HEAD.r - 2;
   ctx.save();
   ctx.beginPath();
-  ctx.arc(HEAD.cx, HEAD.cy, fr, 0, Math.PI * 2);
+  ctx.arc(ox + HEAD.cx, HEAD.cy, fr, 0, Math.PI * 2);
   ctx.clip();
   const min = Math.min(photoImg.width, photoImg.height);
   const sx = (photoImg.width - min) / 2;
   const sy = (photoImg.height - min) / 2;
   ctx.drawImage(photoImg, sx, sy, min, min,
-    HEAD.cx - fr, HEAD.cy - fr, fr * 2, fr * 2);
+    ox + HEAD.cx - fr, HEAD.cy - fr, fr * 2, fr * 2);
   ctx.restore();
+}
 
-  return canvas.toDataURL("image/png");
+// Нога: x — левый край штанины (ширина 5). lift поднимает ступню на 2px.
+function drawLeg(F, x, lift) {
+  const top = 28;
+  const bootH = 3;
+  const legBottom = lift ? 34 : 36;       // приподнятая нога короче
+  const pantsH = legBottom - bootH - top; // высота штанины
+  F(COLORS.outline, x - 1, top - 1, 7, legBottom - top + 1);
+  F(COLORS.overalls, x, top, 5, pantsH);
+  F(COLORS.boot, x, legBottom - bootH, 5, bootH);
+}
+
+// Рука: side 'L'/'R'. pose 'out' — в сторону и чуть вверх; 'up' — поднята.
+// Рисуем диагональную «лесенку» из 2 блоков, чтобы рука смотрела наружу-вверх.
+function drawArm(F, side, pose) {
+  const up = pose === "up";
+  // Базовые координаты для левой руки; правую отзеркалим.
+  // seg1 — у плеча, seg2 — кисть (выше и дальше наружу).
+  const shoulderY = 25;
+  const handY = up ? shoulderY - 6 : shoulderY - 3; // 'up' выше
+  if (side === "L") {
+    F(COLORS.outline, 3, shoulderY - 1, 4, 5);   // плечо-сегмент
+    F(COLORS.skin, 4, shoulderY, 2, 3);
+    F(COLORS.outline, 0, handY - 1, 4, 4);        // кисть наружу-вверх
+    F(COLORS.skin, 1, handY, 2, 2);
+  } else {
+    F(COLORS.outline, 21, shoulderY - 1, 4, 5);
+    F(COLORS.skin, 22, shoulderY, 2, 3);
+    F(COLORS.outline, 24, handY - 1, 4, 4);
+    F(COLORS.skin, 25, handY, 2, 2);
+  }
 }
 
 // ----- утилиты -----
