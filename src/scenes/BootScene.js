@@ -1,15 +1,12 @@
-import { createPlaceholderTextures, applyLoadedSprites, SPRITE_FILES } from "../assets.js";
+import { createPlaceholderTextures } from "../assets.js";
 import { loadPhoto, PLAYER_FRAMES } from "../heroPhoto.js";
 
 export class BootScene extends Phaser.Scene {
   constructor() { super("Boot"); }
 
   preload() {
-    // Спрайты Kenney под суффиксом _raw — потом апскейлим до целевых размеров.
-    for (const [key, path] of Object.entries(SPRITE_FILES)) {
-      this.load.image(`${key}_raw`, path);
-    }
-    // Кастомный герой (если есть) — спрайт-лист из localStorage: 3 кадра 28×42.
+    // Вся графика рисуется кодом (см. assets.js). Внешний ассет один — кастомный
+    // фото-герой из localStorage (спрайт-лист 3 кадра 28×42), если загружен.
     const photo = loadPhoto();
     if (photo) {
       this.load.spritesheet("hero_sheet", photo, {
@@ -17,17 +14,12 @@ export class BootScene extends Phaser.Scene {
         frameHeight: PLAYER_FRAMES.frameHeight,
       });
     }
-    this.load.on("loaderror", (file) => {
-      console.warn(`Не удалось загрузить ${file.key} (${file.url}) — используется placeholder`);
-    });
   }
 
   create() {
-    createPlaceholderTextures(this);  // фолбэк-плашки + всегда spike
-    applyLoadedSprites(this);          // спрайты Kenney → ключи (player = дефолт)
+    createPlaceholderTextures(this); // рисует все текстуры кодом
 
     if (this.textures.exists("hero_sheet")) {
-      // Анимированный фото-герой. Регистрируем анимации (один раз на игру).
       if (!this.anims.exists("hero-idle")) {
         this.anims.create({
           key: "hero-idle",
