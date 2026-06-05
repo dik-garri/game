@@ -22,12 +22,12 @@ export const PLAYER_BODY = { w: T - 4, h: T - 2 }; // 28×30 — как было
 
 // Спрайты Kenney (18×18, CC0). Имена ключей соответствуют ASSET_KEYS.
 // «spike» в паке нет — генерируется placeholder-треугольником.
+// tile/dirt НЕ берём из Kenney — у тех тайлов тёмная окантовка по краям, из-за
+// которой видны швы между блоками. Рисуем их бесшовно кодом (см. ниже).
 export const SPRITE_FILES = {
   player:   "assets/sprites/player.png",
   enemy:    "assets/sprites/enemy.png",
   coin:     "assets/sprites/coin.png",
-  tile:     "assets/sprites/tile.png",
-  dirt:     "assets/sprites/dirt.png",
   platform: "assets/sprites/platform.png",
   flag:     "assets/sprites/flag.png",
 };
@@ -45,10 +45,36 @@ export function createPlaceholderTextures(scene) {
 
   rect("player", COLORS.player);
   rect("enemy", COLORS.enemy);
-  rect("tile", COLORS.tile);
-  rect("dirt", COLORS.tile);
   rect("platform", COLORS.platform);
   rect("flag", COLORS.flag);
+
+  // Земля — бесшовная (полностью заливаем тайл, без боковых границ).
+  const DIRT = 0xb06a3c, DIRT_DARK = 0x8f5228, DIRT_LIGHT = 0xc5895c;
+  const GRASS = 0x6abe30, GRASS_DARK = 0x4f9e24;
+  {
+    const { w, h } = ASSET_KEYS.dirt;
+    g.clear();
+    g.fillStyle(DIRT, 1); g.fillRect(0, 0, w, h);
+    g.fillStyle(DIRT_DARK, 1);
+    g.fillRect(6, 6, 3, 3); g.fillRect(22, 5, 3, 3); g.fillRect(13, 16, 3, 3);
+    g.fillRect(24, 22, 3, 3); g.fillRect(5, 24, 3, 3);
+    g.fillStyle(DIRT_LIGHT, 1); g.fillRect(16, 11, 2, 2); g.fillRect(9, 20, 2, 2);
+    g.generateTexture("dirt", w, h);
+  }
+  {
+    // Трава-сверху: низ совпадает с dirt (бесшовный стык вниз), сверху зелёная
+    // полоса без боковых границ (бесшовно по горизонтали).
+    const { w, h } = ASSET_KEYS.tile;
+    g.clear();
+    g.fillStyle(DIRT, 1); g.fillRect(0, 0, w, h);
+    g.fillStyle(DIRT_DARK, 1); g.fillRect(7, 16, 3, 3); g.fillRect(22, 22, 3, 3);
+    g.fillStyle(GRASS_DARK, 1); g.fillRect(0, 0, w, 8);
+    g.fillStyle(GRASS, 1); g.fillRect(0, 0, w, 5);
+    // редкие травинки по нижней кромке полосы
+    g.fillStyle(GRASS, 1);
+    g.fillRect(3, 8, 2, 2); g.fillRect(13, 8, 2, 2); g.fillRect(24, 8, 2, 2);
+    g.generateTexture("tile", w, h);
+  }
 
   // монета — круг
   {
