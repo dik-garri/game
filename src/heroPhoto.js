@@ -1,9 +1,8 @@
-// Кастомизация героя — Mario-style спрайт с фото лица.
+// Кастомизация героя — chibi Mario-style спрайт с фото лица.
 //
-// Когда юзер загружает фото, мы НЕ кладём его «как есть» в текстуру игрока,
-// а собираем композит 28×30: шапка → лицо (=фото) → тельце-комбинезон →
-// ручки → ножки-ботинки. Получается узнаваемый персонаж-платформер с лицом
-// игрока, а не «летающий аватар».
+// Пропорции «большая голова»: голова/лицо занимают верхние ~60% спрайта,
+// маленькое тело-комбинезон снизу. Так фото читается крупно и узнаваемо,
+// а персонаж выглядит как милый платформер-герой, а не «летающее лицо».
 //
 // Готовый спрайт сохраняется в localStorage как PNG dataURL.
 
@@ -13,18 +12,15 @@ const KEY = "platformer-hero-photo";
 const W = 28;
 const H = 30;
 
-// Прямоугольник «лица» внутри спрайта (куда вписывается фото).
-const FACE = { x: 8, y: 4, w: 12, h: 10 };
-
-// Палитра тела — классические Mario-цвета.
+// Палитра — классические Mario-цвета + контур.
 const COLORS = {
-  cap: "#d62828",       // красная шапка
-  capDark: "#9d2222",   // тень козырька
-  shirt: "#d62828",     // красная рубашка
-  overalls: "#2a5d9e",  // синий комбинезон
+  outline: "#1a1014",   // тёмный контур силуэта
+  cap: "#e23b2e",       // красная шапка
+  capShade: "#a82018",  // тень шапки/козырёк
+  skin: "#f4c190",      // кожа (рамка лица, руки)
+  overalls: "#2f6fc4",  // синий комбинезон
+  overallsShade: "#214f8e",
   button: "#ffd54f",    // жёлтые пуговицы
-  skin: "#f4c190",      // подложка под лицо (если фото с прозрачностью)
-  arm: "#f4c190",       // кожа рук
   boot: "#5d3a1a",      // коричневые ботинки
 };
 
@@ -57,58 +53,55 @@ export function composeAndSave(croppedImg) {
   return composite;
 }
 
-// ----- сборка спрайта -----
+// ----- сборка спрайта (chibi: большая голова сверху, тело снизу) -----
+// Координатная карта (28×30):
+//   y 0..3   — шапка
+//   y 3..21  — голова (рамка-кожа + фото-лицо внутри)
+//   y 21..30 — тело: плечи/руки, комбинезон, ботинки
 function composePlayerSprite(photoImg) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
-
-  // 1. Шапка (рядом 0-2 и козырёк-полоска шире на ряду 3).
-  ctx.fillStyle = COLORS.cap;
-  ctx.fillRect(8, 0, 12, 3);
-  ctx.fillStyle = COLORS.capDark;
-  ctx.fillRect(6, 3, 16, 1);
-
-  // 2. Подложка под лицо (на случай прозрачного фото).
-  ctx.fillStyle = COLORS.skin;
-  ctx.fillRect(FACE.x, FACE.y, FACE.w, FACE.h);
-
-  // 3. Лицо из фото — вписываем квадратный crop в FACE-прямоугольник.
-  // Pixel-art consistency: nearest-neighbor для всех ресайзов.
   ctx.imageSmoothingEnabled = false;
+  const F = (color, x, y, w, h) => { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); };
+
+  // --- Голова: тёмный контур + кожа-рамка ---
+  // Контур головы (на 1px шире кожи со всех сторон).
+  F(COLORS.outline, 3, 2, 22, 20);
+  // Кожа-основа головы.
+  F(COLORS.skin, 4, 3, 20, 18);
+
+  // --- Шапка поверх верха головы ---
+  F(COLORS.cap, 4, 3, 20, 4);      // основная красная полоса
+  F(COLORS.cap, 6, 1, 16, 2);      // макушка чуть выше
+  F(COLORS.capShade, 4, 7, 20, 1); // тень под кромкой шапки (козырёк)
+
+  // --- Лицо из фото: квадратный crop в окно головы ---
+  const FACE = { x: 6, y: 8, w: 16, h: 12 };
   const min = Math.min(photoImg.width, photoImg.height);
   const sx = (photoImg.width - min) / 2;
   const sy = (photoImg.height - min) / 2;
   ctx.drawImage(photoImg, sx, sy, min, min, FACE.x, FACE.y, FACE.w, FACE.h);
 
-  // 4. Рубашка (красная, ряды 14-17).
-  ctx.fillStyle = COLORS.shirt;
-  ctx.fillRect(6, 14, 16, 4);
-
-  // 5. Руки (кожа, по бокам рубашки).
-  ctx.fillStyle = COLORS.arm;
-  ctx.fillRect(4, 15, 2, 5);
-  ctx.fillRect(22, 15, 2, 5);
-
-  // 6. Комбинезон (синий, ряды 18-25). Накрывает низ рубашки.
-  ctx.fillStyle = COLORS.overalls;
-  ctx.fillRect(8, 17, 12, 9);
-
-  // 7. Пуговицы комбинезона.
-  ctx.fillStyle = COLORS.button;
-  ctx.fillRect(10, 19, 2, 2);
-  ctx.fillRect(16, 19, 2, 2);
-
-  // 8. Лямки комбинезона (от верха комбинезона до плеч).
-  ctx.fillStyle = COLORS.overalls;
-  ctx.fillRect(9, 14, 2, 4);
-  ctx.fillRect(17, 14, 2, 4);
-
-  // 9. Ботинки (коричневые, 2 ноги, ряды 26-29).
-  ctx.fillStyle = COLORS.boot;
-  ctx.fillRect(7, 26, 6, 4);
-  ctx.fillRect(15, 26, 6, 4);
+  // --- Тело снизу (y 21..30) ---
+  // Контур тела.
+  F(COLORS.outline, 6, 21, 16, 9);
+  // Плечи/руки (кожа) по бокам.
+  F(COLORS.skin, 7, 22, 3, 5);
+  F(COLORS.skin, 18, 22, 3, 5);
+  // Комбинезон (синий) в центре.
+  F(COLORS.overalls, 10, 22, 8, 8);
+  F(COLORS.overallsShade, 10, 27, 8, 1); // тень внизу комбинезона
+  // Лямки к плечам.
+  F(COLORS.overalls, 10, 21, 2, 2);
+  F(COLORS.overalls, 16, 21, 2, 2);
+  // Пуговицы.
+  F(COLORS.button, 11, 24, 2, 2);
+  F(COLORS.button, 15, 24, 2, 2);
+  // Ботинки (коричневые, две ноги, нижний ряд).
+  F(COLORS.boot, 8, 28, 5, 2);
+  F(COLORS.boot, 15, 28, 5, 2);
 
   return canvas.toDataURL("image/png");
 }
