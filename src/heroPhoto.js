@@ -22,6 +22,7 @@ const COLORS = {
   cap: "#e23b2e",       // красная шапка
   capShade: "#a82018",  // тень шапки/козырёк
   skin: "#f4c190",      // кожа (рамка лица, руки)
+  skinShade: "#d99a63", // мягкая окантовка рук (светлее чёрного контура)
   overalls: "#2f6fc4",  // синий комбинезон
   overallsShade: "#214f8e",
   button: "#ffd54f",    // жёлтые пуговицы
@@ -91,11 +92,7 @@ function drawHeroFrame(ctx, ox, photoImg, pose) {
 
   const HEAD = { cx: 14, cy: 13, r: 13 };
 
-  // --- Руки (вверх-в стороны от торса; рисуем первыми) ---
-  drawArm(F, "L", pose.armL);
-  drawArm(F, "R", pose.armR);
-
-  // --- Торс-комбинезон (даёт рукам опору, соединяет голову и ноги) ---
+  // --- Торс-комбинезон (соединяет голову и ноги) ---
   F(COLORS.outline, 7, 24, 14, 10);     // контур торса (y24..34)
   F(COLORS.overalls, 8, 25, 12, 8);     // комбинезон (y25..33)
   F(COLORS.button, 11, 28, 2, 2);       // пуговицы
@@ -120,21 +117,22 @@ function drawHeroFrame(ctx, ox, photoImg, pose) {
   ctx.drawImage(photoImg, sx, sy, min, min,
     ox + HEAD.cx - fr, HEAD.cy - fr, fr * 2, fr * 2);
   ctx.restore();
+
+  // --- Руки рисуем ПОВЕРХ всего, по бокам — чтобы движение было видно ---
+  drawArm(F, "L", pose.armL);
+  drawArm(F, "R", pose.armR);
 }
 
-// Рука: вертикальная конечность сбоку от торса, вверх. hi — поднята выше, lo — ниже.
-// Левая у x4..8, правая у x20..24 — наружу от торса (x8..20).
+// Рука: светлая вертикальная конечность у самого края, поднята вверх.
+// hi — выше, lo — ниже; разница хорошо заметна, т.к. рука рисуется поверх головы.
 function drawArm(F, side, height) {
-  const handTop = height === "hi" ? 16 : 22;
-  const bottom = 28; // у торса
-  const len = bottom - handTop;
-  if (side === "L") {
-    F(COLORS.outline, 4, handTop - 1, 4, len + 2);
-    F(COLORS.skin, 5, handTop, 2, len);
-  } else {
-    F(COLORS.outline, 20, handTop - 1, 4, len + 2);
-    F(COLORS.skin, 21, handTop, 2, len);
-  }
+  const top = height === "hi" ? 9 : 17;
+  const bottom = 27;                 // у плеча (верх торса)
+  const len = bottom - top;
+  const x = side === "L" ? 1 : 23;   // у левого / правого края (ширина 4)
+  F(COLORS.skinShade, x, top, 4, len);   // мягкая окантовка
+  F(COLORS.skin, x + 1, top, 2, len);    // кожа
+  F(COLORS.skin, x, top - 1, 4, 2);      // кисть-нашлёпка сверху
 }
 
 // Ботинок: x — левый край (ширина 5). up поднимает ступню на 2px.
