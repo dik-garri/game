@@ -62,10 +62,14 @@ export class GameScene extends Phaser.Scene {
           this.add.image(c * ts + ts / 2, r * ts + ts / 2, "dirt").setDepth(-1);
         }
       } else {
-        // пропасть → лава от нижнего ряда карты до низу
+        // пропасть → лава от нижнего ряда карты до низу.
+        // Все ряды — глубокая лава (тело для смерти), верхний ряд накрываем
+        // анимированной «бурлящей» поверхностью.
         for (let r = mapRows - 1; r < fillRows; r++) {
-          this.lava.create(c * ts + ts / 2, r * ts + ts / 2, "lava");
+          this.lava.create(c * ts + ts / 2, r * ts + ts / 2, "lavaDeep");
         }
+        this.add.sprite((c + 0.5) * ts, (mapRows - 1 + 0.5) * ts, "lavaTop0")
+          .play("lava-surface");
       }
     }
 

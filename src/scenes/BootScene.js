@@ -1,4 +1,4 @@
-import { createPlaceholderTextures } from "../assets.js";
+import { createPlaceholderTextures, LAVA_SURFACE_FRAMES } from "../assets.js";
 import { loadPhoto, PLAYER_FRAMES } from "../heroPhoto.js";
 
 export class BootScene extends Phaser.Scene {
@@ -18,6 +18,16 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     createPlaceholderTextures(this); // рисует все текстуры кодом
+
+    // анимация бурлящей поверхности лавы
+    if (!this.anims.exists("lava-surface")) {
+      this.anims.create({
+        key: "lava-surface",
+        frames: Array.from({ length: LAVA_SURFACE_FRAMES }, (_, f) => ({ key: `lavaTop${f}` })),
+        frameRate: 5,
+        repeat: -1,
+      });
+    }
 
     if (this.textures.exists("hero_sheet")) {
       if (!this.anims.exists("hero-idle")) {

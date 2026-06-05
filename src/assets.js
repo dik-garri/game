@@ -12,10 +12,13 @@ export const ASSET_KEYS = {
   spike:  { w: T, h: T },
   tile:   { w: T, h: T },   // трава-сверху (верхний ряд земли)
   dirt:   { w: T, h: T },   // земля без травы (нижние ряды)
-  lava:   { w: T, h: T },   // лава в пропастях
+  lavaDeep: { w: T, h: T }, // глубокая лава (нижние ряды, статична)
   platform: { w: T * 2, h: T / 2 },
   flag:   { w: T, h: T },
 };
+
+// Кадры анимированной поверхности лавы (ключи lavaTop0..3).
+export const LAVA_SURFACE_FRAMES = 4;
 
 // Размер коллизионного тела игрока (центрируется в текстуре 28×42).
 export const PLAYER_BODY = { w: T - 4, h: T - 2 }; // 28×30
@@ -27,7 +30,8 @@ export function createPlaceholderTextures(scene) {
   const g = scene.make.graphics({ x: 0, y: 0, add: false });
   drawDirt(g);
   drawGrass(g);
-  drawLava(g);
+  drawLavaDeep(g);
+  drawLavaSurface(g);
   drawSpike(g);
   drawCoin(g);
   drawPlatform(g);
@@ -81,15 +85,38 @@ function drawGrass(g) {
   });
 }
 
-// ----- лава -----
-function drawLava(g) {
-  tex(g, "lava", (w, h) => {
-    g.fillStyle(C.lavaDark, 1); g.fillRect(0, 0, w, h);
-    g.fillStyle(C.lava, 1); g.fillRect(0, 4, w, h - 4);
-    g.fillStyle(C.lavaTop, 1); g.fillRect(0, 0, w, 4);        // светящаяся поверхность
-    g.fillStyle(C.lavaBlob, 1);                               // пузыри
-    g.fillCircle(7, 13, 3); g.fillCircle(21, 21, 3); g.fillCircle(26, 9, 2);
+// ----- лава: глубокий слой (статичный, тёмно-оранжевый, без яркой кромки) -----
+function drawLavaDeep(g) {
+  tex(g, "lavaDeep", (w, h) => {
+    g.fillStyle(0xe65a1f, 1); g.fillRect(0, 0, w, h);
+    g.fillStyle(C.lavaDark, 1);
+    g.fillRect(5, 8, 3, 3); g.fillRect(20, 18, 3, 3); g.fillRect(12, 24, 2, 2);
+    g.fillStyle(0xff8a3d, 1); g.fillRect(16, 6, 2, 2); g.fillRect(8, 20, 2, 2);
   });
+}
+
+// ----- лава: поверхность (4 кадра анимации, ключи lavaTop0..3) -----
+// Яркая светящаяся кромка + пузыри, которые «бурлят» (двигаются по кадрам).
+function drawLavaSurface(g) {
+  const { w, h } = ASSET_KEYS.lavaDeep;
+  for (let f = 0; f < LAVA_SURFACE_FRAMES; f++) {
+    g.clear();
+    // тело
+    g.fillStyle(0xe65a1f, 1); g.fillRect(0, 0, w, h);
+    g.fillStyle(C.lava, 1); g.fillRect(0, 0, w, 8);
+    // светящаяся кромка с лёгкой «волной» по кадрам
+    g.fillStyle(C.lavaTop, 1);
+    g.fillRect(0, 0, w, 3);
+    g.fillStyle(C.lavaBlob, 1);
+    g.fillRect((f * 8) % w, 1, 5, 1);            // блик бежит по поверхности
+    // пузыри, поднимающиеся/смещающиеся по кадрам
+    const phase = f / LAVA_SURFACE_FRAMES;
+    g.fillStyle(C.lavaBlob, 1);
+    g.fillCircle(7 + f, 12 - f, 2);
+    g.fillCircle(20 - f, 16 + (f % 2) * 2, 2);
+    g.fillCircle(26, 10 + Math.round(phase * 4), 1.5);
+    g.generateTexture(`lavaTop${f}`, w, h);
+  }
 }
 
 // ----- шипы -----
