@@ -11,7 +11,8 @@ export const ASSET_KEYS = {
   enemy:  { w: T - 6, h: T - 6 },
   coin:   { w: T / 2, h: T / 2 },
   spike:  { w: T, h: T },
-  tile:   { w: T, h: T },
+  tile:   { w: T, h: T },   // трава-сверху (верхний ряд земли)
+  dirt:   { w: T, h: T },   // земля без травы (нижние ряды)
   platform: { w: T * 2, h: T / 2 },
   flag:   { w: T, h: T },
 };
@@ -26,6 +27,7 @@ export const SPRITE_FILES = {
   enemy:    "assets/sprites/enemy.png",
   coin:     "assets/sprites/coin.png",
   tile:     "assets/sprites/tile.png",
+  dirt:     "assets/sprites/dirt.png",
   platform: "assets/sprites/platform.png",
   flag:     "assets/sprites/flag.png",
 };
@@ -44,6 +46,7 @@ export function createPlaceholderTextures(scene) {
   rect("player", COLORS.player);
   rect("enemy", COLORS.enemy);
   rect("tile", COLORS.tile);
+  rect("dirt", COLORS.tile);
   rect("platform", COLORS.platform);
   rect("flag", COLORS.flag);
 

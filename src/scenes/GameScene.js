@@ -30,9 +30,19 @@ export class GameScene extends Phaser.Scene {
     this.isDead = false;
     this.won = false;
 
-    // статичные тайлы
+    // статичные тайлы: трава-сверху у поверхности, земля без травы — если
+    // прямо над тайлом есть ещё тайл (подземный блок).
     this.solids = this.physics.add.staticGroup();
-    parsed.tiles.forEach((t) => this.solids.create(t.x, t.y, "tile"));
+    const ts = CONFIG.tileSize;
+    const tileSet = new Set(
+      parsed.tiles.map((t) => `${Math.round((t.x - ts / 2) / ts)},${Math.round((t.y - ts / 2) / ts)}`)
+    );
+    parsed.tiles.forEach((t) => {
+      const col = Math.round((t.x - ts / 2) / ts);
+      const row = Math.round((t.y - ts / 2) / ts);
+      const hasTileAbove = tileSet.has(`${col},${row - 1}`);
+      this.solids.create(t.x, t.y, hasTileAbove ? "dirt" : "tile");
+    });
 
     // шипы (урон, не препятствие). Тело уменьшаем к основанию треугольника,
     // чтобы не убивало на пустых верхних углах тайла — иначе ощущается нечестно.
