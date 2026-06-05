@@ -26,14 +26,17 @@ export class GameScene extends Phaser.Scene {
     const parsed = parseLevel(level);
     if (!parsed.hadStart) console.error("Уровень без точки старта P");
 
-    this.physics.world.setBounds(0, 0, parsed.worldWidth, parsed.worldHeight);
+    // Мир глубже карты: земля заполняется до низу экрана, в пропастях — лава.
+    const ts = CONFIG.tileSize;
+    const worldH = Math.max(parsed.worldHeight, CONFIG.height);
+    this.physics.world.setBounds(0, 0, parsed.worldWidth, worldH);
+    this.cameras.main.setBackgroundColor(0x7ec8e3); // голубое небо
     this.isDead = false;
     this.won = false;
 
-    // статичные тайлы: трава-сверху у поверхности, земля без травы — если
-    // прямо над тайлом есть ещё тайл (подземный блок).
+    // статичные тайлы из карты: трава-сверху у поверхности, земля без травы —
+    // если прямо над тайлом есть ещё тайл (подземный блок).
     this.solids = this.physics.add.staticGroup();
-    const ts = CONFIG.tileSize;
     const tileSet = new Set(
       parsed.tiles.map((t) => `${Math.round((t.x - ts / 2) / ts)},${Math.round((t.y - ts / 2) / ts)}`)
     );
@@ -43,6 +46,28 @@ export class GameScene extends Phaser.Scene {
       const hasTileAbove = tileSet.has(`${col},${row - 1}`);
       this.solids.create(t.x, t.y, hasTileAbove ? "dirt" : "tile");
     });
+
+    // Заполнение ниже карты: под колонками с полом — земля (визуально, до низу);
+    // в колонках-пропастях — лава (с проверкой касания на смерть).
+    this.lava = this.physics.add.staticGroup();
+    const mapRows = level.map.length;
+    const cols = Math.round(parsed.worldWidth / ts);
+    const fillRows = Math.ceil(worldH / ts);
+    const isSolid = (r, c) => (level.map[r] || "")[c] === "=";
+    for (let c = 0; c < cols; c++) {
+      if (isSolid(mapRows - 1, c)) {
+        // колонка с полом → визуальная земля до низу (без коллизии — игрок
+        // стоит на верхних тайлах из карты)
+        for (let r = mapRows; r < fillRows; r++) {
+          this.add.image(c * ts + ts / 2, r * ts + ts / 2, "dirt").setDepth(-1);
+        }
+      } else {
+        // пропасть → лава от нижнего ряда карты до низу
+        for (let r = mapRows - 1; r < fillRows; r++) {
+          this.lava.create(c * ts + ts / 2, r * ts + ts / 2, "lava");
+        }
+      }
+    }
 
     // шипы (урон, не препятствие). Тело уменьшаем к основанию треугольника,
     // чтобы не убивало на пустых верхних углах тайла — иначе ощущается нечестно.
@@ -66,8 +91,11 @@ export class GameScene extends Phaser.Scene {
     this.player = new Player(this, parsed.player.x, parsed.player.y);
     this.physics.add.collider(this.player, this.solids);
 
+    // смерть от лавы
+    this.physics.add.overlap(this.player, this.lava, () => this.die(), null, this);
+
     // камера следует за игроком
-    this.cameras.main.setBounds(0, 0, parsed.worldWidth, parsed.worldHeight);
+    this.cameras.main.setBounds(0, 0, parsed.worldWidth, worldH);
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
     // сбор монет

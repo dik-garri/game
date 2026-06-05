@@ -12,6 +12,7 @@ export const ASSET_KEYS = {
   spike:  { w: T, h: T },
   tile:   { w: T, h: T },   // трава-сверху (верхний ряд земли)
   dirt:   { w: T, h: T },   // земля без травы (нижние ряды)
+  lava:   { w: T, h: T },   // лава в пропастях
   platform: { w: T * 2, h: T / 2 },
   flag:   { w: T, h: T },
 };
@@ -26,6 +27,7 @@ export function createPlaceholderTextures(scene) {
   const g = scene.make.graphics({ x: 0, y: 0, add: false });
   drawDirt(g);
   drawGrass(g);
+  drawLava(g);
   drawSpike(g);
   drawCoin(g);
   drawPlatform(g);
@@ -40,6 +42,7 @@ const C = {
   dirt: 0xb06a3c, dirtDark: 0x8f5228, dirtLight: 0xc5895c,
   grass: 0x6abe30, grassDark: 0x4f9e24,
   steel: 0x9aa5b1, steelDark: 0x5b6470, steelTip: 0xe8edf2,
+  lava: 0xff7b29, lavaDark: 0xd2491b, lavaTop: 0xffb43f, lavaBlob: 0xffd23f,
   gold: 0xffd24a, goldDark: 0xe0a81e, goldLight: 0xfff3b0,
   wood: 0x8a5a32, woodDark: 0x6d4526, woodLight: 0xb07a48,
   stone: 0x9aa0aa, stoneDark: 0x6c727c, stoneLight: 0xc3c8d0,
@@ -75,6 +78,17 @@ function drawGrass(g) {
     g.fillStyle(C.grass, 1); g.fillRect(0, 0, w, 5);
     g.fillStyle(C.grass, 1);
     g.fillRect(3, 8, 2, 2); g.fillRect(13, 8, 2, 2); g.fillRect(24, 8, 2, 2);
+  });
+}
+
+// ----- лава -----
+function drawLava(g) {
+  tex(g, "lava", (w, h) => {
+    g.fillStyle(C.lavaDark, 1); g.fillRect(0, 0, w, h);
+    g.fillStyle(C.lava, 1); g.fillRect(0, 4, w, h - 4);
+    g.fillStyle(C.lavaTop, 1); g.fillRect(0, 0, w, 4);        // светящаяся поверхность
+    g.fillStyle(C.lavaBlob, 1);                               // пузыри
+    g.fillCircle(7, 13, 3); g.fillCircle(21, 21, 3); g.fillCircle(26, 9, 2);
   });
 }
 
