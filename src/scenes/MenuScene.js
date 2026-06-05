@@ -1,7 +1,8 @@
 import { LEVELS } from "../levels.js";
 import { getProgress, resetProgress } from "../progressStore.js";
 import { isMuted, toggleMute } from "../sounds.js";
-import { savePhoto, clearPhoto, hasPhoto } from "../heroPhoto.js";
+import { fileToImageDataUrl, composeAndSave, clearPhoto, hasPhoto } from "../heroPhoto.js";
+import { openCropOverlay } from "../cropOverlay.js";
 
 export class MenuScene extends Phaser.Scene {
   constructor() { super("Menu"); }
@@ -95,7 +96,10 @@ export class MenuScene extends Phaser.Scene {
       const file = input.files?.[0];
       if (!file) return;
       try {
-        await savePhoto(file);
+        const dataUrl = await fileToImageDataUrl(file);
+        const cropped = await openCropOverlay(dataUrl); // null если отменили
+        if (!cropped) return;
+        composeAndSave(cropped);
         // Простейший способ применить — перезагрузить страницу, BootScene
         // подхватит фото из localStorage и заменит текстуру player.
         location.reload();

@@ -38,13 +38,17 @@ export function clearPhoto() {
 }
 export function hasPhoto() { return !!loadPhoto(); }
 
-// Принимает File от <input type="file">, собирает Mario-style спрайт с фото в
-// области лица и сохраняет в localStorage.
-export async function savePhoto(file) {
+// Читает File от <input type="file"> и возвращает dataURL (для передачи в
+// crop-оверлей). Бросает, если файл не картинка.
+export async function fileToImageDataUrl(file) {
   if (!file || !file.type?.startsWith("image/")) throw new Error("Это не картинка");
-  const photoDataUrl = await fileToDataUrl(file);
-  const photoImg = await loadImage(photoDataUrl);
-  const composite = composePlayerSprite(photoImg);
+  return fileToDataUrl(file);
+}
+
+// Принимает уже обрезанное (квадратное) изображение, собирает Mario-style
+// спрайт с лицом из него и сохраняет композит в localStorage.
+export function composeAndSave(croppedImg) {
+  const composite = composePlayerSprite(croppedImg);
   try {
     localStorage.setItem(KEY, composite);
   } catch (e) {

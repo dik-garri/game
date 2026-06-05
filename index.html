@@ -50,6 +50,44 @@
       opacity: 0; transition: opacity 0.2s; pointer-events: none;
     }
     #ed-toast.show { opacity: 1; }
+
+    /* ---- Crop overlay ---- */
+    #crop-overlay {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.75);
+      align-items: center; justify-content: center;
+    }
+    #crop-dialog {
+      background: #1a2333; padding: 20px; border-radius: 10px;
+      max-width: 90vw; width: 460px; text-align: center;
+    }
+    #crop-dialog h3 { margin: 0 0 4px; color: #ffd54f; font-size: 18px; }
+    #crop-dialog .crop-hint { margin: 0 0 14px; font-size: 13px; color: #b0bec5; }
+    #crop-stage {
+      position: relative; width: 100%; height: 340px;
+      background: #0f1620; border-radius: 6px; overflow: hidden;
+      touch-action: none; user-select: none;
+    }
+    #crop-image { position: absolute; pointer-events: none; image-rendering: auto; }
+    #crop-box {
+      position: absolute; box-sizing: border-box;
+      border: 2px solid #ffd54f;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+      cursor: move; touch-action: none;
+    }
+    #crop-handle {
+      position: absolute; right: -8px; bottom: -8px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #ffd54f; cursor: nwse-resize; touch-action: none;
+    }
+    .crop-actions { margin-top: 14px; display: flex; gap: 10px; justify-content: center; }
+    .crop-actions button {
+      padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;
+    }
+    #crop-apply { background: #4caf50; color: #fff; }
+    #crop-apply:hover { background: #5cb860; }
+    #crop-cancel { background: #37474f; color: #cfd8dc; }
+    #crop-cancel:hover { background: #455a64; }
   </style>
 </head>
 <body>
@@ -123,6 +161,22 @@
 
   <!-- Скрытый input для выбора фото героя из меню. -->
   <input type="file" id="hero-photo-input" accept="image/*" style="display:none">
+
+  <!-- Модалка обрезки фото героя. -->
+  <div id="crop-overlay">
+    <div id="crop-dialog">
+      <h3>Обрежьте фото для лица героя</h3>
+      <p class="crop-hint">Перетащите рамку, угол — для размера. Выделенный квадрат станет лицом.</p>
+      <div id="crop-stage">
+        <img id="crop-image" alt="">
+        <div id="crop-box"><div id="crop-handle"></div></div>
+      </div>
+      <div class="crop-actions">
+        <button id="crop-apply">✓ Применить</button>
+        <button id="crop-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
 
 
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
