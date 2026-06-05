@@ -14,18 +14,19 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(cx, 78, "← → или A/D — движение,  ↑/W/Пробел — прыжок",
       { fontSize: "15px", color: "#b0bec5" }).setOrigin(0.5);
 
-    // Уровни — в две колонки по 5 (всего влезают в высоту экрана).
-    const colX = [this.scale.width * 0.30, this.scale.width * 0.70];
-    const startY = 130, stepY = 40, perCol = 5;
+    // Уровни — в колонки по 5 (число колонок зависит от количества уровней).
+    const startY = 128, stepY = 40, perCol = 5;
+    const colCount = Math.ceil(LEVELS.length / perCol);
     LEVELS.forEach((lvl, i) => {
       const prog = getProgress(lvl.name);
       const tick = prog?.completed ? "✓ " : "";
       const best = prog?.completed ? `  ★${prog.bestScore}` : "";
       const label = `${tick}${i + 1}. ${lvl.name}${best}`;
-      const x = colX[Math.floor(i / perCol)];
+      const colIndex = Math.floor(i / perCol);
+      const x = (this.scale.width * (colIndex + 1)) / (colCount + 1);
       const y = startY + (i % perCol) * stepY;
       const t = this.add.text(x, y, label,
-        { fontSize: "18px", color: prog?.completed ? "#a5d6a7" : "#4caf50" })
+        { fontSize: "15px", color: prog?.completed ? "#a5d6a7" : "#4caf50" })
         .setOrigin(0.5).setInteractive();
       t.on("pointerover", () => t.setColor(prog?.completed ? "#c8e6c9" : "#a5d6a7"));
       t.on("pointerout", () => t.setColor(prog?.completed ? "#a5d6a7" : "#4caf50"));
@@ -33,7 +34,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Конструктор
-    const editorY = startY + perCol * stepY + 20; // под обеими колонками
+    const editorY = startY + perCol * stepY + 24; // под колонками уровней
     const editorBtn = this.add.text(cx, editorY,
       "🔧 Открыть конструктор уровней",
       { fontSize: "20px", color: "#ffd54f" })
