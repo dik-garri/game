@@ -39,10 +39,13 @@ export class LevelCompleteScene extends Phaser.Scene {
     const title = last ? "ИГРА ПРОЙДЕНА!" : "УРОВЕНЬ ПРОЙДЕН!";
     this.add.text(cx, cy - 60, title, { fontSize: "40px", color: "#4caf50" }).setOrigin(0.5);
     this.add.text(cx, cy, `Очки: ${this.score}`, { fontSize: "24px", color: "#fff" }).setOrigin(0.5);
-    const hint = last ? "[M] меню" : "[ПРОБЕЛ] дальше   [M] меню";
+    const hint = last ? "[ПРОБЕЛ] меню" : "[ПРОБЕЛ] дальше   [M] меню";
     this.add.text(cx, cy + 50, hint, { fontSize: "20px", color: "#b0bec5" }).setOrigin(0.5);
 
-    if (!last) {
+    if (last) {
+      // Игра пройдена — пробелом возвращаемся в меню.
+      this.input.keyboard.once("keydown-SPACE", () => this.scene.start("Menu"));
+    } else {
       this.input.keyboard.once("keydown-SPACE", () => {
         const next = nextLevelIndex(this.levelIndex);
         this.scene.start("Game", { levelIndex: next, lives: CONFIG.livesPerLevel, score: this.score });
