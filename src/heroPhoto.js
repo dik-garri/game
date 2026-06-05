@@ -81,6 +81,12 @@ function composePlayerSprite(photoImg) {
   F(COLORS.boot, 8, 33, 5, 3);         // левый ботинок
   F(COLORS.boot, 15, 33, 5, 3);        // правый ботинок
 
+  // --- Ручки по бокам (под головой, у плеч) ---
+  F(COLORS.outline, 3, 25, 4, 7);      // контур левой руки
+  F(COLORS.skin, 4, 26, 2, 5);         // левая рука (кожа)
+  F(COLORS.outline, 21, 25, 4, 7);     // контур правой руки
+  F(COLORS.skin, 22, 26, 2, 5);        // правая рука (кожа)
+
   // --- Голова: контур-круг → кожа-круг → круглое фото-лицо ---
   disc(COLORS.outline, HEAD.cx, HEAD.cy, HEAD.r);       // тёмный ободок
   disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);      // кожа (тонкий ободок)
