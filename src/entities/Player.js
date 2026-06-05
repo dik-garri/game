@@ -1,4 +1,5 @@
 import { CONFIG } from "../config.js";
+import { ASSET_KEYS, PLAYER_BODY } from "../assets.js";
 import { sfx } from "../sounds.js";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -6,6 +7,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, "player");
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    // Текстура 28×42 (голова сверху). Коллизия — 28×30 по центру текстуры,
+    // чтобы спавн и физика были идентичны прежним (тело центрировано на спрайте,
+    // голова визуально выступает над ним). Offset по Y центрирует тело.
+    const offY = (ASSET_KEYS.player.h - PLAYER_BODY.h) / 2; // (42-30)/2 = 6
+    this.body.setSize(PLAYER_BODY.w, PLAYER_BODY.h);
+    this.body.setOffset((ASSET_KEYS.player.w - PLAYER_BODY.w) / 2, offY);
     this.setCollideWorldBounds(false); // падение в яму = смерть
     this.cursors = scene.input.keyboard.createCursorKeys();
     this.keys = scene.input.keyboard.addKeys({ a: "A", d: "D", w: "W", space: "SPACE" });

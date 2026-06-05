@@ -8,9 +8,9 @@
 
 const KEY = "platformer-hero-photo";
 
-// Размеры финального спрайта — должны совпадать с ASSET_KEYS.player в assets.js.
+// Размер текстуры игрока — должен совпадать с ASSET_KEYS.player в assets.js.
 const W = 28;
-const H = 30;
+const H = 42;
 
 // Палитра — классические Mario-цвета + контур.
 const COLORS = {
@@ -54,36 +54,39 @@ export function composeAndSave(croppedImg) {
 }
 
 // ----- сборка спрайта: большое круглое лицо + ноги -----
-// Координатная карта (28×30):
-//   y 1..23  — голова-круг (контур + кожа + круглое фото-лицо)
-//   y 23..30 — две ноги в ботинках
+// Координатная карта (28×42):
+//   y 0..28  — голова-круг (контур + кожа + круглое фото-лицо, диаметр ~26)
+//   y 27..42 — две ноги в ботинках
 function composePlayerSprite(photoImg) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = true;     // гладкий портрет, не пиксельная каша
+  ctx.imageSmoothingQuality = "high";
   const F = (color, x, y, w, h) => { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); };
   const disc = (color, cx, cy, r) => {
     ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
   };
 
-  const HEAD = { cx: 14, cy: 12, r: 12 };
+  const HEAD = { cx: 14, cy: 14, r: 14 }; // круг почти во всю ширину
 
-  // --- Ноги (рисуем ПЕРВЫМИ, чтобы голова перекрыла их верх) ---
-  F(COLORS.outline, 8, 22, 13, 8);     // тёмный контур тела-ног
-  F(COLORS.overalls, 9, 23, 4, 4);     // левая штанина
-  F(COLORS.overalls, 15, 23, 4, 4);    // правая штанина
-  F(COLORS.boot, 9, 27, 4, 3);         // левый ботинок
-  F(COLORS.boot, 15, 27, 4, 3);        // правый ботинок
+  // --- Ноги (рисуем ПЕРВЫМИ, голова перекроет их верх) ---
+  // Низ ног на y36 = низ коллизии (28×30 центрирована, тело y6..36), чтобы
+  // ботинки стояли на земле, а не уходили в тайл.
+  F(COLORS.outline, 7, 27, 14, 9);     // тёмный контур ног
+  F(COLORS.overalls, 8, 28, 5, 5);     // левая штанина
+  F(COLORS.overalls, 15, 28, 5, 5);    // правая штанина
+  F(COLORS.boot, 8, 33, 5, 3);         // левый ботинок
+  F(COLORS.boot, 15, 33, 5, 3);        // правый ботинок
 
   // --- Голова: контур-круг → кожа-круг → круглое фото-лицо ---
   disc(COLORS.outline, HEAD.cx, HEAD.cy, HEAD.r);       // тёмный ободок
-  disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);      // кожа (виден тонкий ободок)
+  disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);      // кожа (тонкий ободок)
 
-  // Лицо: клип по кругу (r-2), фото вписывается в bounding box.
-  const fr = HEAD.r - 2; // радиус лица
+  // Лицо: клип по кругу (r-2 ≈ 12 → диаметр 24), фото в bounding box.
+  const fr = HEAD.r - 2;
   ctx.save();
   ctx.beginPath();
   ctx.arc(HEAD.cx, HEAD.cy, fr, 0, Math.PI * 2);

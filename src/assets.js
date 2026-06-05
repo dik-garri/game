@@ -2,10 +2,12 @@ import { CONFIG, COLORS } from "./config.js";
 
 const T = CONFIG.tileSize;
 
-// Реестр: ключ → размеры. Используется и при генерации placeholder, и при
-// апскейле загруженных спрайтов.
+// Реестр: ключ → размер текстуры в пикселях.
+// Игрок выше тайла (42px): голова-круг крупная сверху, тело-коллизия 28×30 по
+// центру (см. PLAYER_BODY и Player.js). Так лицо занимает больше ЛОГИЧЕСКИХ
+// пикселей на экране — а это потолок детализации при image-rendering: pixelated.
 export const ASSET_KEYS = {
-  player: { w: T - 4, h: T - 2 },
+  player: { w: T - 4, h: 42 },
   enemy:  { w: T - 6, h: T - 6 },
   coin:   { w: T / 2, h: T / 2 },
   spike:  { w: T, h: T },
@@ -13,6 +15,9 @@ export const ASSET_KEYS = {
   platform: { w: T * 2, h: T / 2 },
   flag:   { w: T, h: T },
 };
+
+// Размер коллизионного тела игрока (центрируется в текстуре 28×42).
+export const PLAYER_BODY = { w: T - 4, h: T - 2 }; // 28×30 — как было
 
 // Спрайты Kenney (18×18, CC0). Имена ключей соответствуют ASSET_KEYS.
 // «spike» в паке нет — генерируется placeholder-треугольником.
@@ -70,19 +75,31 @@ export function createPlaceholderTextures(scene) {
 // уже зарегистрирован под этим же ключом.
 export function applyLoadedSprites(scene) {
   for (const key of Object.keys(SPRITE_FILES)) {
-    upscaleRawIntoKey(scene, `${key}_raw`, key);
+    // player: сохраняем пропорции (contain), чтобы квадратный Kenney-спрайт не
+    // растягивался в высокий 28×42. Остальным — растяжение (нужно платформе 64×16).
+    upscaleRawIntoKey(scene, `${key}_raw`, key, { contain: key === "player" });
   }
 }
 
-// Утилита: rawKey → upscale до размеров ASSET_KEYS[targetKey] → сохраняем
+// Утилита: rawKey → upscale до размера ASSET_KEYS[targetKey] → сохраняем
 // под targetKey, заменив старую текстуру (если была).
-export function upscaleRawIntoKey(scene, rawKey, targetKey) {
+// opts.contain — вписать с сохранением пропорций (по центру), иначе растянуть.
+export function upscaleRawIntoKey(scene, rawKey, targetKey, opts = {}) {
   if (!scene.textures.exists(rawKey)) return false;
   const { w, h } = ASSET_KEYS[targetKey];
   const rt = scene.add.renderTexture(0, 0, w, h).setVisible(false);
-  const img = scene.add.image(0, 0, rawKey).setOrigin(0).setVisible(false);
-  img.setDisplaySize(w, h);
-  rt.draw(img, 0, 0);
+  const img = scene.add.image(0, 0, rawKey).setOrigin(0.5).setVisible(false);
+
+  if (opts.contain) {
+    const src = scene.textures.get(rawKey).getSourceImage();
+    const scale = Math.min(w / src.width, h / src.height);
+    img.setDisplaySize(src.width * scale, src.height * scale);
+    rt.draw(img, w / 2, h / 2); // центрируем
+  } else {
+    img.setDisplaySize(w, h);
+    rt.draw(img, w / 2, h / 2);
+  }
+
   if (scene.textures.exists(targetKey)) scene.textures.remove(targetKey);
   rt.saveTexture(targetKey);
   img.destroy();
