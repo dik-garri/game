@@ -37,7 +37,7 @@ export class BootScene extends Phaser.Scene {
         this.anims.create({
           key: "hero-walk",
           frames: this.anims.generateFrameNumbers("hero_sheet", { frames: [1, 2] }),
-          frameRate: 8,
+          frameRate: 5,
           repeat: -1,
         });
       }

@@ -69,10 +69,11 @@ function composePlayerSprite(photoImg) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
+  // hi/lo — высота руки, up/down — поднята ли ступня.
   const poses = [
-    { armL: "out", armR: "out", legL: "plant", legR: "plant" }, // idle
-    { armL: "up",  armR: "out", legL: "lift",  legR: "plant" }, // шаг A
-    { armL: "out", armR: "up",  legL: "plant", legR: "lift"  }, // шаг B
+    { armL: "hi", armR: "hi", bootL: "down", bootR: "down" }, // idle: обе руки вверх
+    { armL: "hi", armR: "lo", bootL: "up",   bootR: "down" }, // шаг A
+    { armL: "lo", armR: "hi", bootL: "down", bootR: "up"   }, // шаг B
   ];
   poses.forEach((pose, i) => drawHeroFrame(ctx, i * W, photoImg, pose));
 
@@ -80,6 +81,7 @@ function composePlayerSprite(photoImg) {
 }
 
 // Рисует один кадр героя со сдвигом ox по X.
+// Слои снизу вверх: руки → торс-комбинезон → ботинки → голова с лицом.
 function drawHeroFrame(ctx, ox, photoImg, pose) {
   const F = (color, x, y, w, h) => { ctx.fillStyle = color; ctx.fillRect(ox + x, y, w, h); };
   const disc = (color, cx, cy, r) => {
@@ -87,21 +89,27 @@ function drawHeroFrame(ctx, ox, photoImg, pose) {
     ctx.beginPath(); ctx.arc(ox + cx, cy, r, 0, Math.PI * 2); ctx.fill();
   };
 
-  const HEAD = { cx: 14, cy: 14, r: 14 };
+  const HEAD = { cx: 14, cy: 13, r: 13 };
 
-  // --- Ноги (рисуем первыми; lift = нога приподнята на 2px) ---
-  drawLeg(F, 8, pose.legL === "lift");
-  drawLeg(F, 15, pose.legR === "lift");
-
-  // --- Ручки (out = в сторону и чуть вверх; up = поднята) ---
+  // --- Руки (вверх-в стороны от торса; рисуем первыми) ---
   drawArm(F, "L", pose.armL);
   drawArm(F, "R", pose.armR);
+
+  // --- Торс-комбинезон (даёт рукам опору, соединяет голову и ноги) ---
+  F(COLORS.outline, 7, 24, 14, 10);     // контур торса (y24..34)
+  F(COLORS.overalls, 8, 25, 12, 8);     // комбинезон (y25..33)
+  F(COLORS.button, 11, 28, 2, 2);       // пуговицы
+  F(COLORS.button, 15, 28, 2, 2);
+
+  // --- Ботинки (две ноги; up = ступня приподнята на 2px) ---
+  drawBoot(F, 8, pose.bootL === "up");
+  drawBoot(F, 15, pose.bootR === "up");
 
   // --- Голова: контур → кожа → круглое фото-лицо ---
   disc(COLORS.outline, HEAD.cx, HEAD.cy, HEAD.r);
   disc(COLORS.skin, HEAD.cx, HEAD.cy, HEAD.r - 1);
 
-  const fr = HEAD.r - 2;
+  const fr = HEAD.r - 2; // радиус лица ≈ 11 → диаметр 22
   ctx.save();
   ctx.beginPath();
   ctx.arc(ox + HEAD.cx, HEAD.cy, fr, 0, Math.PI * 2);
@@ -114,36 +122,27 @@ function drawHeroFrame(ctx, ox, photoImg, pose) {
   ctx.restore();
 }
 
-// Нога: x — левый край штанины (ширина 5). lift поднимает ступню на 2px.
-function drawLeg(F, x, lift) {
-  const top = 28;
-  const bootH = 3;
-  const legBottom = lift ? 34 : 36;       // приподнятая нога короче
-  const pantsH = legBottom - bootH - top; // высота штанины
-  F(COLORS.outline, x - 1, top - 1, 7, legBottom - top + 1);
-  F(COLORS.overalls, x, top, 5, pantsH);
-  F(COLORS.boot, x, legBottom - bootH, 5, bootH);
+// Рука: вертикальная конечность сбоку от торса, вверх. hi — поднята выше, lo — ниже.
+// Левая у x4..8, правая у x20..24 — наружу от торса (x8..20).
+function drawArm(F, side, height) {
+  const handTop = height === "hi" ? 16 : 22;
+  const bottom = 28; // у торса
+  const len = bottom - handTop;
+  if (side === "L") {
+    F(COLORS.outline, 4, handTop - 1, 4, len + 2);
+    F(COLORS.skin, 5, handTop, 2, len);
+  } else {
+    F(COLORS.outline, 20, handTop - 1, 4, len + 2);
+    F(COLORS.skin, 21, handTop, 2, len);
+  }
 }
 
-// Рука: side 'L'/'R'. pose 'out' — в сторону и чуть вверх; 'up' — поднята.
-// Рисуем диагональную «лесенку» из 2 блоков, чтобы рука смотрела наружу-вверх.
-function drawArm(F, side, pose) {
-  const up = pose === "up";
-  // Базовые координаты для левой руки; правую отзеркалим.
-  // seg1 — у плеча, seg2 — кисть (выше и дальше наружу).
-  const shoulderY = 25;
-  const handY = up ? shoulderY - 6 : shoulderY - 3; // 'up' выше
-  if (side === "L") {
-    F(COLORS.outline, 3, shoulderY - 1, 4, 5);   // плечо-сегмент
-    F(COLORS.skin, 4, shoulderY, 2, 3);
-    F(COLORS.outline, 0, handY - 1, 4, 4);        // кисть наружу-вверх
-    F(COLORS.skin, 1, handY, 2, 2);
-  } else {
-    F(COLORS.outline, 21, shoulderY - 1, 4, 5);
-    F(COLORS.skin, 22, shoulderY, 2, 3);
-    F(COLORS.outline, 24, handY - 1, 4, 4);
-    F(COLORS.skin, 25, handY, 2, 2);
-  }
+// Ботинок: x — левый край (ширина 5). up поднимает ступню на 2px.
+// Низ опущенной ступни на y36 = низ коллизии (тело 28×30 центрировано: y6..36).
+function drawBoot(F, x, up) {
+  const bottom = up ? 34 : 36;
+  F(COLORS.outline, x - 1, bottom - 4, 7, 5);
+  F(COLORS.boot, x, bottom - 3, 5, 3);
 }
 
 // ----- утилиты -----
