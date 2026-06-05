@@ -20,6 +20,18 @@ export class UIScene extends Phaser.Scene {
 
     this.render();
 
+    // Кнопка выхода в меню (для мыши/тача; с клавиатуры — Esc).
+    const exitBtn = this.add.text(this.scale.width / 2, 12, "≡ Меню", {
+      fontSize: "16px", color: "#fff", backgroundColor: "#00000066",
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5, 0).setInteractive();
+    exitBtn.on("pointerover", () => exitBtn.setColor("#ffd54f"));
+    exitBtn.on("pointerout", () => exitBtn.setColor("#fff"));
+    exitBtn.on("pointerdown", () => {
+      this.scene.stop("Game");
+      this.scene.start("Menu"); // останавливает UIScene (себя) и запускает меню
+    });
+
     const game = this.scene.get("Game");
     const onScore = (score) => { this.cur.score = score; this.render(); };
     const onLives = (lives) => { this.cur.lives = lives; this.render(); };

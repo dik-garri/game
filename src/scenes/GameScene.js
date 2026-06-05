@@ -34,6 +34,20 @@ export class GameScene extends Phaser.Scene {
     this.isDead = false;
     this.won = false;
 
+    // белые облака в небе (параллакс + лёгкий дрейф)
+    const cloudCount = Math.max(3, Math.ceil(parsed.worldWidth / 300));
+    for (let i = 0; i < cloudCount; i++) {
+      const x = 80 + i * 300 + (i % 2) * 120;
+      const y = 26 + (i % 3) * 26;
+      const cl = this.add.image(x, y, "cloud")
+        .setScrollFactor(0.6).setDepth(-3).setAlpha(0.95)
+        .setScale(0.8 + (i % 3) * 0.25);
+      this.tweens.add({
+        targets: cl, x: x + 40,
+        duration: 5000 + i * 350, yoyo: true, repeat: -1, ease: "Sine.inOut",
+      });
+    }
+
     // статичные тайлы из карты: трава-сверху у поверхности, земля без травы —
     // если прямо над тайлом есть ещё тайл (подземный блок).
     this.solids = this.physics.add.staticGroup();
@@ -168,6 +182,14 @@ export class GameScene extends Phaser.Scene {
     this.events.emit("hud-init", { lives: this.lives, score: this.score, level: this.levelIndex + 1 });
 
     this.setupTouchInput();
+
+    // выход в меню в любой момент по Esc
+    this.input.keyboard.on("keydown-ESC", () => this.exitToMenu());
+  }
+
+  exitToMenu() {
+    this.scene.stop("UI");
+    this.scene.start("Menu");
   }
 
   // Touch-управление: hold по левой половине = идти влево, по правой = вправо,

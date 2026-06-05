@@ -38,6 +38,7 @@ export function createPlaceholderTextures(scene) {
   drawFlag(g);
   drawEnemy(g);
   drawDefaultPlayer(g);
+  drawCloud(g);
   g.destroy();
 }
 
@@ -198,6 +199,19 @@ function drawEnemy(g) {
     g.fillStyle(C.enemyDark, 1);
     g.fillRoundedRect(3, h - 4, 7, 4, 2); g.fillRoundedRect(w - 10, h - 4, 7, 4, 2);
   });
+}
+
+// ----- облако (белое, пушистое) -----
+function drawCloud(g) {
+  const w = 48, h = 24;
+  g.clear();
+  g.fillStyle(0xffffff, 1);
+  g.fillCircle(14, 15, 9);
+  g.fillCircle(26, 12, 11);
+  g.fillCircle(36, 16, 8);
+  g.fillRoundedRect(8, 15, 34, 8, 4);
+  g.fillStyle(0xe6eef7, 1); g.fillRect(11, 21, 28, 2); // мягкая тень снизу
+  g.generateTexture("cloud", w, h);
 }
 
 // ----- игрок по умолчанию (без фото) — милый персонаж -----
