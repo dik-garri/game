@@ -26,7 +26,7 @@ const COLORS = {
   overalls: "#2f6fc4",  // синий комбинезон
   overallsShade: "#214f8e",
   button: "#ffd54f",    // жёлтые пуговицы
-  boot: "#5d3a1a",      // коричневые ботинки
+  boot: "#e23b2e",      // красные ботинки
 };
 
 export function loadPhoto() {
@@ -70,11 +70,11 @@ function composePlayerSprite(photoImg) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // hi/lo — высота руки, up/down — поднята ли ступня.
+  // up/down — поднята ли ступня (шаг).
   const poses = [
-    { armL: "hi", armR: "hi", bootL: "down", bootR: "down" }, // idle: обе руки вверх
-    { armL: "hi", armR: "lo", bootL: "up",   bootR: "down" }, // шаг A
-    { armL: "lo", armR: "hi", bootL: "down", bootR: "up"   }, // шаг B
+    { bootL: "down", bootR: "down" }, // idle
+    { bootL: "up",   bootR: "down" }, // шаг A
+    { bootL: "down", bootR: "up"   }, // шаг B
   ];
   poses.forEach((pose, i) => drawHeroFrame(ctx, i * W, photoImg, pose));
 
@@ -117,22 +117,6 @@ function drawHeroFrame(ctx, ox, photoImg, pose) {
   ctx.drawImage(photoImg, sx, sy, min, min,
     ox + HEAD.cx - fr, HEAD.cy - fr, fr * 2, fr * 2);
   ctx.restore();
-
-  // --- Руки рисуем ПОВЕРХ всего, по бокам — чтобы движение было видно ---
-  drawArm(F, "L", pose.armL);
-  drawArm(F, "R", pose.armR);
-}
-
-// Рука: светлая вертикальная конечность у самого края, поднята вверх.
-// hi — выше, lo — ниже; разница хорошо заметна, т.к. рука рисуется поверх головы.
-function drawArm(F, side, height) {
-  const top = height === "hi" ? 9 : 17;
-  const bottom = 27;                 // у плеча (верх торса)
-  const len = bottom - top;
-  const x = side === "L" ? 1 : 23;   // у левого / правого края (ширина 4)
-  F(COLORS.skinShade, x, top, 4, len);   // мягкая окантовка
-  F(COLORS.skin, x + 1, top, 2, len);    // кожа
-  F(COLORS.skin, x, top - 1, 4, 2);      // кисть-нашлёпка сверху
 }
 
 // Ботинок: x — левый край (ширина 5). up поднимает ступню на 2px.
