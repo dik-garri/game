@@ -1,179 +1,92 @@
-# Контракт ассетов
+# Графика
 
-Инструкция по замене placeholder-графики на настоящие спрайты.
-
----
-
-## Принцип
-
-Весь игровой код обращается к текстурам **только по строковым ключам** (например, `"player"`, `"tile"`). Реестр ключей и их размеры определены в `src/assets.js`. При переходе на настоящую графику **менять нужно только этот файл** — остальной код трогать не придётся.
+Вся графика игры **рисуется кодом** в `src/assets.js` — внешних файлов-картинок
+нет. Единственное исключение — фото героя, которое загружает сам игрок (см.
+ниже). Стиль: плоские заливки, мягкие тени, светлые блики, без жёстких рамок —
+чтобы тайлы стыковались бесшовно.
 
 ---
 
-## Реестр ключей
+## Как это устроено
 
-`T = CONFIG.tileSize = 32` (см. `src/config.js`).
+Игровой код обращается к текстурам **только по строковым ключам** (`"player"`,
+`"tile"`, `"enemy"`…). Все текстуры регистрируются один раз в
+`createPlaceholderTextures(scene)` (`src/assets.js`), которую вызывает
+`BootScene.create()`. Размеры — в реестре `ASSET_KEYS`.
 
-| Ключ | Размер (px) | Что это | Где используется |
+`T = CONFIG.tileSize = 32`.
+
+| Ключ | Размер (px) | Что | Функция отрисовки |
 |---|---|---|---|
-| `player` | 28×30 (`T−4` × `T−2`) | спрайт игрока | `src/entities/Player.js` |
-| `enemy` | 26×26 (`T−6` × `T−6`) | спрайт врага | `src/entities/Enemy.js` |
-| `coin` | 16×16 (`T/2` × `T/2`) | монета (placeholder — круг) | `GameScene` — группа `coins` |
-| `spike` | 32×32 (`T` × `T`) | шип (placeholder — треугольник; хитбокс — нижняя половина) | `GameScene` — группа `spikes` |
-| `tile` | 32×32 (`T` × `T`) | статичный блок земли из ASCII-карты | `GameScene` — группа `solids` |
-| `platform` | 64×16 (`T*2` × `T/2`) | движущаяся платформа | `src/entities/MovingPlatform.js` |
-| `flag` | 32×32 (`T` × `T`) | финишный флаг | `GameScene` — объект `flag` |
+| `tile` | 32×32 | земля с травой (поверхность) | `drawGrass` |
+| `dirt` | 32×32 | земля без травы (под поверхностью) | `drawDirt` |
+| `lavaDeep` | 32×32 | глубокая лава (статична) | `drawLavaDeep` |
+| `lavaTop0..3` | 32×32 | анимированная поверхность лавы (4 кадра) | `drawLavaSurface` |
+| `spike` | 32×32 | шип (3 зубца; хитбокс — нижняя половина) | `drawSpike` |
+| `coin` | 16×16 | монета | `drawCoin` |
+| `platform` | 64×16 | движущаяся платформа | `drawPlatform` |
+| `flag` | 32×32 | финишный клетчатый флаг | `drawFlag` |
+| `enemy` | 26×26 | враг-слизень | `drawEnemy` |
+| `player` | 28×42 | игрок по умолчанию (без фото) | `drawDefaultPlayer` |
+| `cloud` | 48×24 | облако | `drawCloud` |
 
-**Различие `tile` и `platform`:** `tile` — статичный твёрдый блок из ASCII-карты (`=`); `platform` — текстура для движущейся платформы (класс `MovingPlatform`).
-
----
-
-## Шаги замены на настоящие спрайты
-
-### 1. Подготовить файлы ассетов
-
-Создать PNG-файлы (или спрайт-листы) под каждый ключ с указанными размерами. Рекомендуемое расположение — папка `assets/` в корне проекта:
-
-```
-assets/
-  player.png    — 28×30 px (или спрайт-лист для анимаций)
-  enemy.png     — 26×26 px (или спрайт-лист)
-  coin.png      — 16×16 px
-  spike.png     — 32×32 px
-  tile.png      — 32×32 px
-  platform.png  — 64×16 px
-  flag.png      — 32×32 px
-```
-
-### 2. Переписать `src/assets.js`
-
-Текущая функция `createPlaceholderTextures(scene)` генерирует текстуры через `scene.make.graphics()`. При переходе на реальные ассеты нужно использовать Phaser-загрузчик.
-
-Так как `BootScene` вызывает `createPlaceholderTextures` в `create()`, а загрузка файлов должна происходить в `preload()`, переносим логику в `BootScene` напрямую — см. ниже.
+Палитра собрана в объекте `C` в начале `src/assets.js`. Чтобы перекрасить или
+изменить форму объекта — правится только соответствующая `draw*`-функция.
 
 ---
 
-### Подход А — статичные изображения (без анимаций)
+## Анимации
 
-Отредактировать `src/scenes/BootScene.js`:
+Регистрируются в `BootScene.create()`:
 
-```js
-import { createPlaceholderTextures } from "../assets.js"; // можно убрать
-
-export class BootScene extends Phaser.Scene {
-  constructor() { super("Boot"); }
-
-  preload() {
-    this.load.image("player",   "assets/player.png");
-    this.load.image("enemy",    "assets/enemy.png");
-    this.load.image("coin",     "assets/coin.png");
-    this.load.image("spike",    "assets/spike.png");
-    this.load.image("tile",     "assets/tile.png");
-    this.load.image("platform", "assets/platform.png");
-    this.load.image("flag",     "assets/flag.png");
-  }
-
-  create() {
-    // createPlaceholderTextures(this); — больше не нужно
-    this.scene.start("Menu");
-  }
-}
-```
-
-Тело функции `createPlaceholderTextures` в `src/assets.js` можно оставить как fallback или удалить.
+- **`lava-surface`** — 4 кадра `lavaTop0..3`, 5 fps, луп. В `GameScene` верхний
+  ряд каждой лавовой колонки — спрайт с этой анимацией поверх статичной
+  `lavaDeep`.
+- **`hero-idle` / `hero-walk`** — только если загружено фото героя (см. ниже).
 
 ---
 
-### Подход Б — спрайт-листы с анимациями
+## Игрок: размер и физика
 
-Если у игрока и врага есть кадры анимации:
+Текстура игрока — `28×42` (выше тайла: крупная голова сверху, тело снизу).
+Это сделано намеренно: при `image-rendering: pixelated` детализация на экране
+ограничена **логическим** размером спрайта, поэтому более крупный персонаж =
+крупнее и читаемее лицо.
 
-```js
-export class BootScene extends Phaser.Scene {
-  constructor() { super("Boot"); }
-
-  preload() {
-    this.load.spritesheet("player", "assets/player.png",
-      { frameWidth: 28, frameHeight: 30 });
-    this.load.spritesheet("enemy", "assets/enemy.png",
-      { frameWidth: 26, frameHeight: 26 });
-    this.load.image("coin",     "assets/coin.png");
-    this.load.image("spike",    "assets/spike.png");
-    this.load.image("tile",     "assets/tile.png");
-    this.load.image("platform", "assets/platform.png");
-    this.load.image("flag",     "assets/flag.png");
-  }
-
-  create() {
-    // Регистрация анимаций
-    this.anims.create({
-      key: "player-run",
-      frames: this.anims.generateFrameNumbers("player", { start: 0, end: 7 }),
-      frameRate: 12, repeat: -1
-    });
-    this.anims.create({
-      key: "player-idle",
-      frames: [{ key: "player", frame: 0 }]
-    });
-    this.anims.create({
-      key: "player-jump",
-      frames: [{ key: "player", frame: 8 }]
-    });
-    this.anims.create({
-      key: "enemy-walk",
-      frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
-      frameRate: 6, repeat: -1
-    });
-
-    this.scene.start("Menu");
-  }
-}
-```
-
-### 3. Подключить анимации в сущностях (только для подхода Б)
-
-В `src/entities/Player.js`, метод `update()`:
-
-```js
-update() {
-  const left  = this.cursors.left.isDown  || this.keys.a.isDown;
-  const right = this.cursors.right.isDown || this.keys.d.isDown;
-  const jump  = this.cursors.up.isDown    || this.keys.w.isDown || this.keys.space.isDown;
-
-  if (left)       this.setVelocityX(-CONFIG.playerSpeed);
-  else if (right) this.setVelocityX(CONFIG.playerSpeed);
-  else            this.setVelocityX(0);
-
-  if (jump && this.body.blocked.down) this.setVelocityY(CONFIG.jumpVelocity);
-
-  // Анимации
-  if (!this.body.blocked.down)    this.anims.play("player-jump", true);
-  else if (left || right)         this.anims.play("player-run",  true);
-  else                            this.anims.play("player-idle", true);
-}
-```
-
-В `src/entities/Enemy.js`, метод `update()` — добавить в конец:
-
-```js
-this.anims.play("enemy-walk", true);
-```
-
-### 4. Игровой код менять не нужно
-
-Все обращения к текстурам идут по ключам (`"player"`, `"enemy"` и т.д.). Размеры физических тел `Player`/`Enemy` заданы в их конструкторах — Phaser берёт размер первого кадра спрайт-листа автоматически. Если новые спрайты крупнее или меньше указанных размеров — подрегулировать через `setSize` / `setOffset` в конструкторах сущностей.
-
-### 5. Проверить чеклист из README
-
-После замены ассетов пройти [чеклист ручного тестирования](README.md#чеклист-ручного-тестирования). Особое внимание:
-
-- **Хитбокс шипа** по-прежнему занимает нижнюю половину тайла (`setSize(T−6, T/2)` + `setOffset(3, T/2)` в `GameScene.create()`). Убедиться, что новый спрайт шипа визуально совпадает с хитбоксом.
-- **Прыжок на врага сверху**: допуск в `GameScene` — `enemy.body.height * 0.5`. Если высота нового спрайта врага сильно отличается от 26 px — скорректировать `setSize` в конструкторе `Enemy`.
+Коллизионное тело — `PLAYER_BODY = 28×30`, центрируется в текстуре
+(`body.setSize` + `setOffset` в `Player.js`), так что физика и спавн не зависят
+от высоты текстуры — голова визуально выступает над телом.
 
 ---
 
-## Где добавлять новые анимации
+## Фото героя (конвейер)
 
-- Все анимации регистрируются в `BootScene.create()` после загрузки ассетов.
-- Имена ключей анимаций — произвольные строки; ссылки на них только в `Player.js` и `Enemy.js`.
-- Дополнительные ключи текстур (фон, частицы и т.п.) добавлять в `ASSET_KEYS` в `src/assets.js` для документирования контракта.
+Файлы: `src/heroPhoto.js` + `src/cropOverlay.js`.
+
+1. **Выбор файла** (`<input type=file>` в `index.html`) → dataURL.
+2. **Круглый кроп** (`cropOverlay.js`): модалка с перетаскиваемой/масштабируемой
+   круглой рамкой; на выходе квадрат с круглой альфа-маской.
+3. **Сборка спрайт-листа** (`heroPhoto.composePlayerSprite`): на `<canvas>`
+   рисуется 3 кадра `28×42` (idle + 2 шага) — круглое лицо из фото + тело-
+   комбинезон + ботинки; ноги чередуются по кадрам. Результат — PNG dataURL в
+   `localStorage` (ключ `platformer-hero-photo`).
+4. **Загрузка**: `BootScene.preload` грузит dataURL как `spritesheet`
+   `hero_sheet` (`28×42`), регистрирует `hero-idle`/`hero-walk`, кладёт
+   `playerKey`/`playerAnimated` в `registry`.
+5. **Применение**: `Player` берёт `playerKey` из registry; при анимированном
+   герое играет `hero-walk` при движении, иначе `hero-idle`.
+
+Сброс — `clearPhoto()` (кнопка «вернуть стандартного» в меню) → используется
+код-рисованный `drawDefaultPlayer`.
+
+---
+
+## Добавить новый визуальный объект
+
+1. Дописать ключ и размер в `ASSET_KEYS` (если нужен фиксированный размер).
+2. Написать `drawX(g)` через `tex(g, "key", (w,h) => { ... })` и вызвать её в
+   `createPlaceholderTextures`.
+3. Ссылаться на текстуру по ключу в нужной сцене/сущности.
+
+Доступные примитивы Phaser Graphics: `fillRect`, `fillRoundedRect`,
+`fillCircle`, `fillTriangle` (+ `fillStyle(color, alpha)`).
