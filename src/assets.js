@@ -54,12 +54,27 @@ export function createPlaceholderTextures(scene) {
     g.generateTexture("coin", w, w);
   }
 
-  // шип — треугольник (постоянный placeholder, спрайта в паке Kenney нет)
+  // шип — три металлических зубца на основании (спрайта в паке Kenney нет)
   {
     const { w, h } = ASSET_KEYS.spike;
-    g.clear(); g.fillStyle(COLORS.spike, 1);
-    g.beginPath(); g.moveTo(0, h); g.lineTo(w / 2, 0); g.lineTo(w, h);
-    g.closePath(); g.fillPath();
+    const STEEL = 0x9aa5b1, STEEL_DARK = 0x5b6470, TIP = 0xe8edf2;
+    g.clear();
+    // основание
+    g.fillStyle(STEEL_DARK, 1);
+    g.fillRect(0, h - 5, w, 5);
+    // 3 зубца
+    const n = 3, sw = w / n;
+    for (let i = 0; i < n; i++) {
+      const left = i * sw, cx = left + sw / 2, baseY = h - 3;
+      g.fillStyle(STEEL, 1);
+      g.fillTriangle(left + 1, baseY, cx, 2, left + sw - 1, baseY);
+      // тёмная правая грань — объём
+      g.fillStyle(STEEL_DARK, 1);
+      g.fillTriangle(cx, 2, left + sw - 1, baseY, cx, baseY);
+      // светлый кончик
+      g.fillStyle(TIP, 1);
+      g.fillTriangle(cx - 1, 5, cx, 2, cx + 1, 5);
+    }
     g.generateTexture("spike", w, h);
   }
 

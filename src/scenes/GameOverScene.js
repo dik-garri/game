@@ -26,9 +26,9 @@ export class GameOverScene extends Phaser.Scene {
       return;
     }
 
-    this.add.text(cx, cy + 50, "[R] заново   [M] меню",
+    this.add.text(cx, cy + 50, "[ПРОБЕЛ] заново   [M] меню",
       { fontSize: "20px", color: "#b0bec5" }).setOrigin(0.5);
-    this.input.keyboard.once("keydown-R", () => {
+    this.input.keyboard.once("keydown-SPACE", () => {
       this.scene.stop("UI");
       this.scene.start("Game", { levelIndex: this.levelIndex, lives: CONFIG.livesPerLevel, score: this.score });
       this.scene.launch("UI", { lives: CONFIG.livesPerLevel, score: this.score, level: this.levelIndex + 1 });

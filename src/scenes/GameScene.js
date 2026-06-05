@@ -163,7 +163,16 @@ export class GameScene extends Phaser.Scene {
   update() {
     if (this.isDead || this.won) return;
     this.player.update();
-    if (this.player.y > this.physics.world.bounds.height + 64) this.die();
+
+    // Упор по горизонтали: за левый/правый край мира не выпускаем (раньше игрок
+    // уходил в пустоту и падал → умирал). Вертикаль не трогаем — падение в яму
+    // должно убивать.
+    const bounds = this.physics.world.bounds;
+    const body = this.player.body;
+    if (body.x < 0) { this.player.x -= body.x; body.setVelocityX(0); }
+    else if (body.right > bounds.width) { this.player.x -= body.right - bounds.width; body.setVelocityX(0); }
+
+    if (this.player.y > bounds.height + 64) this.die();
     // обновляем платформы и провозим игрока, если он стоит сверху
     this.platforms.getChildren().forEach((p) => {
       p.update();
