@@ -35,8 +35,16 @@ function findChar(grid, ch) {
   return null;
 }
 
-// Строит множество «стенд-поинтов» — клеток (row, col), где игрок может стоять.
-// Считаются: клетка над любым '=' тайлом + диапазоны движущихся платформ.
+// Твёрдая ли клетка (на неё нельзя зайти, можно стоять сверху)?
+// '=' земля и '^' шип считаются твёрдыми снизу (на шип можно «приземлиться»
+// сверху для целей достижимости — он стоит на полу).
+const isSolid = (grid, r, c) =>
+  r >= 0 && r < grid.length && c >= 0 && c < grid[r].length &&
+  (grid[r][c] === "=" || grid[r][c] === "^");
+
+// Строит множество «стенд-поинтов» — клеток, где игрок реально может стоять:
+// клетка пустая (воздух), а прямо под ней — твёрдая. Плюс диапазоны платформ.
+// Высото-независимо: работает с любым рельефом, не только плоским полом.
 function buildStandPoints(level) {
   const grid = level.map;
   const W = grid[0].length;
@@ -45,7 +53,10 @@ function buildStandPoints(level) {
 
   for (let r = 0; r < grid.length; r++) {
     for (let c = 0; c < grid[r].length; c++) {
-      if (grid[r][c] === "=" && r > 0) stands.add(key(r - 1, c));
+      // (r,c) — стенд-поинт, если тут НЕ твёрдо, а под ним твёрдо.
+      const here = grid[r][c];
+      const air = here === "." || here === "C" || here === "P" || here === "F";
+      if (air && isSolid(grid, r + 1, c)) stands.add(key(r, c));
     }
   }
   for (const p of level.movingPlatforms ?? []) {
@@ -131,20 +142,23 @@ test("у каждого уровня есть ровно один P и ровн�
   }
 });
 
-test("у каждого врага под траекторией патруля есть пол", () => {
+test("ни один враг не патрулирует над ямой/лавой", () => {
   for (const level of LEVELS) {
-    let pRow = -1;
-    for (let r = 0; r < level.map.length; r++)
-      if (level.map[r].includes("P")) pRow = r;
-    const floorRow = level.map[pRow + 1];
+    const grid = level.map;
     for (const en of level.enemies ?? []) {
       const [a, b] = en.patrol;
-      const slice = floorRow.slice(a, b + 1);
-      const allFloor = [...slice].every((c) => c === "=" || c === "^");
-      assert.ok(
-        allFloor,
-        `Уровень "${level.name}": враг patrol [${a},${b}] стоит над "${slice}"`
-      );
+      for (let c = a; c <= b; c++) {
+        // Враг падает на первый твёрдый тайл ниже своей высоты. Если под
+        // колонкой нет твёрдого вовсе — это пропасть/лава, враг провалится.
+        let hasFloor = false;
+        for (let r = en.y + 1; r < grid.length; r++) {
+          if (isSolid(grid, r, c)) { hasFloor = true; break; }
+        }
+        assert.ok(
+          hasFloor,
+          `Уровень "${level.name}": враг (y=${en.y}) patrol [${a},${b}] — под col ${c} нет пола (яма/лава)`
+        );
+      }
     }
   }
 });
