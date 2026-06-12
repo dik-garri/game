@@ -14,19 +14,25 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(cx, 78, "← → или A/D — движение,  ↑/W/Пробел — прыжок",
       { fontSize: "15px", color: "#b0bec5" }).setOrigin(0.5);
 
-    // Уровни — в колонки по 5 (число колонок зависит от количества уровней).
-    const startY = 128, stepY = 40, perCol = 5;
-    const colCount = Math.ceil(LEVELS.length / perCol);
+    // Уровни — в колонки (адаптивно): не больше 7 в столбце, число колонок и
+    // размер шрифта подстраиваются под количество уровней.
+    const perColMax = 7;
+    const colCount = Math.ceil(LEVELS.length / perColMax);
+    const perCol = Math.ceil(LEVELS.length / colCount);
+    const startY = 104, stepY = 36;
+    const many = colCount >= 4;
+    const fontSize = many ? "13px" : "15px";
     LEVELS.forEach((lvl, i) => {
       const prog = getProgress(lvl.name);
       const tick = prog?.completed ? "✓ " : "";
-      const best = prog?.completed ? `  ★${prog.bestScore}` : "";
+      // при многих колонках прячем счёт (не влезает) — галочка остаётся
+      const best = prog?.completed && !many ? `  ★${prog.bestScore}` : "";
       const label = `${tick}${i + 1}. ${lvl.name}${best}`;
       const colIndex = Math.floor(i / perCol);
       const x = (this.scale.width * (colIndex + 1)) / (colCount + 1);
       const y = startY + (i % perCol) * stepY;
       const t = this.add.text(x, y, label,
-        { fontSize: "15px", color: prog?.completed ? "#a5d6a7" : "#4caf50" })
+        { fontSize, color: prog?.completed ? "#a5d6a7" : "#4caf50" })
         .setOrigin(0.5).setInteractive();
       t.on("pointerover", () => t.setColor(prog?.completed ? "#c8e6c9" : "#a5d6a7"));
       t.on("pointerout", () => t.setColor(prog?.completed ? "#a5d6a7" : "#4caf50"));
@@ -34,7 +40,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Конструктор
-    const editorY = startY + perCol * stepY + 24; // под колонками уровней
+    const editorY = startY + perCol * stepY + 18; // под колонками уровней
     const editorBtn = this.add.text(cx, editorY,
       "🔧 Открыть конструктор уровней",
       { fontSize: "20px", color: "#ffd54f" })
