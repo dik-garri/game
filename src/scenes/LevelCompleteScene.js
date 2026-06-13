@@ -12,46 +12,59 @@ export class LevelCompleteScene extends Phaser.Scene {
     this.fromEditor = !!data.fromEditor;
     this.customLevel = data.customLevel ?? null;
   }
+
+  // Кнопка-тап (для мобилок) + действие. Клавиши биндятся отдельно.
+  button(x, y, label, action) {
+    const t = this.add.text(x, y, label, {
+      fontSize: "22px", color: "#fff", backgroundColor: "#2f6fc4",
+      padding: { x: 18, y: 10 },
+    }).setOrigin(0.5).setInteractive();
+    t.on("pointerover", () => t.setColor("#ffd54f"));
+    t.on("pointerout", () => t.setColor("#fff"));
+    t.on("pointerdown", action);
+    return t;
+  }
+
   create() {
     sfx.win();
-    // Сохраняем прогресс только для встроенных уровней (не для тестовых из конструктора).
     if (!this.fromEditor) {
       const levelName = LEVELS[this.levelIndex]?.name;
       if (levelName) markCompleted(levelName, this.score);
     }
     const cx = this.scale.width / 2, cy = this.scale.height / 2;
+
     if (this.fromEditor) {
-      // Тестовый прогон из конструктора — короткий экран, возврат в редактор.
-      this.add.text(cx, cy - 40, "УРОВЕНЬ ПРОЙДЕН (тест)",
+      this.add.text(cx, cy - 50, "УРОВЕНЬ ПРОЙДЕН (тест)",
         { fontSize: "32px", color: "#4caf50" }).setOrigin(0.5);
-      this.add.text(cx, cy + 10, `Очки: ${this.score}`,
+      this.add.text(cx, cy - 8, `Очки: ${this.score}`,
         { fontSize: "22px", color: "#fff" }).setOrigin(0.5);
-      this.add.text(cx, cy + 60, "[ENTER] в конструктор",
-        { fontSize: "18px", color: "#b0bec5" }).setOrigin(0.5);
-      this.input.keyboard.once("keydown-ENTER",
-        () => this.scene.start("Editor", { level: this.customLevel }));
-      this.input.keyboard.once("keydown-M",
-        () => this.scene.start("Editor", { level: this.customLevel }));
+      const toEditor = () => this.scene.start("Editor", { level: this.customLevel });
+      this.button(cx, cy + 50, "🔧 В конструктор", toEditor);
+      this.input.keyboard.once("keydown-ENTER", toEditor);
+      this.input.keyboard.once("keydown-M", toEditor);
       return;
     }
 
     const last = isLastLevel(this.levelIndex, LEVELS.length);
     const title = last ? "ИГРА ПРОЙДЕНА!" : "УРОВЕНЬ ПРОЙДЕН!";
-    this.add.text(cx, cy - 60, title, { fontSize: "40px", color: "#4caf50" }).setOrigin(0.5);
-    this.add.text(cx, cy, `Очки: ${this.score}`, { fontSize: "24px", color: "#fff" }).setOrigin(0.5);
-    const hint = last ? "[ПРОБЕЛ] меню" : "[ПРОБЕЛ] дальше   [M] меню";
-    this.add.text(cx, cy + 50, hint, { fontSize: "20px", color: "#b0bec5" }).setOrigin(0.5);
+    this.add.text(cx, cy - 70, title, { fontSize: "40px", color: "#4caf50" }).setOrigin(0.5);
+    this.add.text(cx, cy - 24, `Очки: ${this.score}`, { fontSize: "24px", color: "#fff" }).setOrigin(0.5);
 
+    const toMenu = () => this.scene.start("Menu");
     if (last) {
-      // Игра пройдена — пробелом возвращаемся в меню.
-      this.input.keyboard.once("keydown-SPACE", () => this.scene.start("Menu"));
+      this.button(cx, cy + 40, "≡ В меню", toMenu);
+      this.input.keyboard.once("keydown-SPACE", toMenu);
+      this.input.keyboard.once("keydown-M", toMenu);
     } else {
-      this.input.keyboard.once("keydown-SPACE", () => {
-        const next = nextLevelIndex(this.levelIndex);
-        this.scene.start("Game", { levelIndex: next, lives: CONFIG.livesPerLevel, score: this.score });
-        this.scene.launch("UI", { lives: CONFIG.livesPerLevel, score: this.score, level: next + 1 });
-      });
+      const next = () => {
+        const n = nextLevelIndex(this.levelIndex);
+        this.scene.start("Game", { levelIndex: n, lives: CONFIG.livesPerLevel, score: this.score });
+        this.scene.launch("UI", { lives: CONFIG.livesPerLevel, score: this.score, level: n + 1 });
+      };
+      this.button(cx - 95, cy + 40, "▶ Дальше", next);
+      this.button(cx + 95, cy + 40, "≡ Меню", toMenu);
+      this.input.keyboard.once("keydown-SPACE", next);
+      this.input.keyboard.once("keydown-M", toMenu);
     }
-    this.input.keyboard.once("keydown-M", () => this.scene.start("Menu"));
   }
 }
