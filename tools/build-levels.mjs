@@ -1,6 +1,6 @@
 // Авторский генератор «интересных» уровней (E/M/H/X/Z) с многоуровневым
 // рельефом. Каждый уровень спроектирован вручную через хелперы рельефа.
-// Старые рисованные L-уровни (Разминка..Финал) НЕ трогаем — они эталон.
+// Старые рисованные L-уровни (теперь Закалка..Цитадель) НЕ трогаем — эталон.
 //
 // Запуск:  node tools/build-levels.mjs
 // JSON-файлы в levels/ — источник правды для игры; этот скрипт лишь авторская
@@ -322,7 +322,7 @@ const levels = {};
   const a = islands(s, 18, 34, 3, 3, 5);
   flat(s, 40, 50, 4); stairs(s, 37, 7, 4); stairs(s, 51, 4, 7);
   const b = islands(s, 56, 70, 3, 3, 5);
-  levels.X5 = build({ name: "Финал++", surf: s, P: 2, F: 75,
+  levels.X5 = build({ name: "Эпицентр", surf: s, P: 2, F: 75,
     spikes: [8, 45],
     coins: [...a.map((c) => ({ c, r: 3 })), ...coinArc(s, 41, 49, 2), ...b.map((c) => ({ c, r: 3 }))],
     enemies: [{ x: a[0], y: 4, patrol: [a[0] - 1, a[0] + 1] }, { x: 45, y: 3, patrol: [41, 49] }, { x: b[1], y: 4, patrol: [b[1] - 1, b[1] + 1] }],
@@ -337,7 +337,7 @@ const levels = {};
   flat(s, 2, 8, 6);
   const ctr = islands(s, 12, 66, 3, 3, 5);
   flat(s, 70, 75, 6);
-  levels.Z1 = build({ name: "Преисподняя", surf: s, P: 3, F: 74,
+  levels.Z1 = build({ name: "Лавовая бездна", surf: s, P: 3, F: 74,
     spikes: [5, ctr[1], ctr[3], ctr[5], 72],
     coins: ctr.map((c) => ({ c, r: 3 })),
     enemies: [{ x: 4, y: 5, patrol: [3, 6] }, { x: ctr[0], y: 4, patrol: [ctr[0], ctr[0]] }, { x: ctr[2], y: 4, patrol: [ctr[2], ctr[2]] }, { x: ctr[4], y: 4, patrol: [ctr[4], ctr[4]] }, { x: 73, y: 5, patrol: [71, 74] }],
@@ -362,7 +362,7 @@ const levels = {};
   const s = makeSurf();
   flat(s, 6, 64, 5); stairs(s, 3, 7, 5); stairs(s, 65, 5, 7);
   gap(s, 22, 24); gap(s, 38, 40); gap(s, 54, 56);
-  levels.Z3 = build({ name: "Игольное ушко", surf: s, P: 2, F: 75,
+  levels.Z3 = build({ name: "Частокол", surf: s, P: 2, F: 75,
     spikes: [10, 12, 16, 18, 28, 30, 34, 44, 46, 50, 60, 62],
     coins: [{ c: 23, r: 3 }, { c: 39, r: 3 }, { c: 55, r: 3 }, ...coinArc(s, 68, 73, 3)],
     enemies: [{ x: 8, y: 4, patrol: [7, 9] }, { x: 27, y: 4, patrol: [26, 27] }, { x: 43, y: 4, patrol: [42, 43] }, { x: 59, y: 4, patrol: [58, 59] }, { x: 71, y: 6, patrol: [69, 73] }],
@@ -395,7 +395,7 @@ const levels = {};
   flat(s, 32, 36, 4); stairs(s, 29, 7, 4); stairs(s, 37, 4, 7);
   const b = islands(s, 42, 58, 2, 3, 5);
   hill(s, 64, 72, 5);
-  levels.Z5 = build({ name: "АД", surf: s, P: 3, F: 75,
+  levels.Z5 = build({ name: "Вулкан", surf: s, P: 3, F: 75,
     spikes: [5, 34, 68],
     coins: [...a.map((c) => ({ c, r: 3 })), ...coinArc(s, 33, 35, 1, 3), ...b.map((c) => ({ c, r: 3 }))],
     enemies: [{ x: 5, y: 5, patrol: [3, 7] }, { x: a[1], y: 4, patrol: [a[1], a[1]] }, { x: 34, y: 3, patrol: [32, 36] }, { x: b[1], y: 4, patrol: [b[1], b[1]] }, { x: 68, y: 4, patrol: [65, 71] }],
