@@ -232,6 +232,8 @@ export class EditorScene extends Phaser.Scene {
   // ---- интеграция с HTML-панелью ----
   setupHtmlPanel() {
     document.body.classList.add("editor-mode");
+    // контейнер игры сжался (панель заняла место справа) — перевписать масштаб
+    this.scale.refresh();
 
     const $ = (id) => document.getElementById(id);
     const on = (el, type, fn) => { el.addEventListener(type, fn); this.handlers.push({ el, type, fn }); };

@@ -8,6 +8,11 @@ export class MenuScene extends Phaser.Scene {
   constructor() { super("Menu"); }
 
   create() {
+    // на случай возврата из конструктора (контейнер игры снова на весь экран)
+    if (document.body.classList.contains("editor-mode")) {
+      document.body.classList.remove("editor-mode");
+    }
+    this.scale.refresh();
     const cx = this.scale.width / 2;
     this.add.text(cx, 36, "ПЛАТФОРМЕР", { fontSize: "40px", color: "#fff" })
       .setOrigin(0.5);

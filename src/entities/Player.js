@@ -19,16 +19,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setCollideWorldBounds(false); // падение в яму = смерть
     this.cursors = scene.input.keyboard.createCursorKeys();
     this.keys = scene.input.keyboard.addKeys({ a: "A", d: "D", w: "W", space: "SPACE" });
-    // Состояние touch-управления (пишется в GameScene из pointer-событий).
-    this.touch = { left: false, right: false, jumpQueued: false };
+    // Состояние touch-управления (экранные кнопки в GameScene). jump — удержание.
+    this.touch = { left: false, right: false, jump: false };
     if (this.animated) this.play("hero-idle");
   }
 
   update() {
     const left = this.cursors.left.isDown || this.keys.a.isDown || this.touch.left;
     const right = this.cursors.right.isDown || this.keys.d.isDown || this.touch.right;
-    const jumpHeld = this.cursors.up.isDown || this.keys.w.isDown || this.keys.space.isDown;
-    const jump = jumpHeld || this.touch.jumpQueued;
+    const jump = this.cursors.up.isDown || this.keys.w.isDown || this.keys.space.isDown || this.touch.jump;
 
     if (left) this.setVelocityX(-CONFIG.playerSpeed);
     else if (right) this.setVelocityX(CONFIG.playerSpeed);
@@ -38,7 +37,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.setVelocityY(CONFIG.jumpVelocity);
       sfx.jump();
     }
-    this.touch.jumpQueued = false; // потребляем одиночный «прыжок» из свайпа
 
     // Анимация: шагаем при горизонтальном движении, иначе стоим.
     if (this.animated) {

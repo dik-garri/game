@@ -9,10 +9,20 @@ import { EditorScene } from "./scenes/EditorScene.js";
 
 const gameConfig = {
   type: Phaser.AUTO,
-  width: CONFIG.width,
-  height: CONFIG.height,
+  // FIT масштабирует игру 832×512 под любой экран с сохранением пропорций,
+  // CENTER_BOTH центрирует. Координаты ввода Phaser пересчитывает сам — тач
+  // на телефоне попадает в нужные точки.
+  scale: {
+    parent: "game-root",
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: CONFIG.width,
+    height: CONFIG.height,
+  },
   backgroundColor: COLORS.bg,
   pixelArt: true,
+  // до 3 одновременных касаний: двигаться и прыгать одной рукой/двумя пальцами.
+  input: { activePointers: 3 },
   physics: { default: "arcade", arcade: { gravity: { y: CONFIG.gravity }, debug: false } },
   scene: [BootScene, MenuScene, GameScene, UIScene, GameOverScene, LevelCompleteScene, EditorScene],
 };

@@ -192,36 +192,29 @@ export class GameScene extends Phaser.Scene {
     this.scene.start("Menu");
   }
 
-  // Touch-управление: hold по левой половине = идти влево, по правой = вправо,
-  // свайп вверх (Δy < -30 px от точки нажатия) = прыжок (одноразово).
+  // Экранные кнопки управления (только на тач-устройствах). Мультитач:
+  // можно держать ◀/▶ и одновременно жать ⤴ (разные пальцы = разные pointer'ы).
   setupTouchInput() {
+    if (!this.sys.game.device.input.touch) return; // на десктопе не показываем
     const touch = this.player.touch;
-    let startY = null;
+    const H = this.scale.height, W = this.scale.width;
+    const R = 42;
 
-    this.input.on("pointerdown", (p) => {
-      // Игнорируем не-touch если есть клавиатура (на десктопе обычные клики не должны двигать).
-      if (p.pointerType !== "touch") return;
-      startY = p.y;
-      const left = p.x < this.scale.width / 2;
-      if (left) { touch.left = true; touch.right = false; }
-      else      { touch.right = true; touch.left = false; }
-    });
+    const btn = (x, y, label, onDown, onUp) => {
+      const circle = this.add.circle(x, y, R, 0xffffff, 0.18)
+        .setScrollFactor(0).setDepth(2000).setStrokeStyle(3, 0xffffff, 0.5)
+        .setInteractive({ useHandCursor: false });
+      this.add.text(x, y, label, { fontSize: "30px", color: "#ffffff" })
+        .setOrigin(0.5).setScrollFactor(0).setDepth(2001).setAlpha(0.8);
+      circle.on("pointerdown", onDown);
+      circle.on("pointerup", onUp);
+      circle.on("pointerout", onUp);   // палец увели за кнопку — отпускаем
+      return circle;
+    };
 
-    this.input.on("pointermove", (p) => {
-      if (p.pointerType !== "touch" || !p.isDown) return;
-      // Свайп вверх от точки начала касания → запрос прыжка.
-      if (startY != null && (startY - p.y) > 30) {
-        touch.jumpQueued = true;
-        startY = null; // не повторять до следующего нажатия
-      }
-    });
-
-    this.input.on("pointerup", (p) => {
-      if (p.pointerType !== "touch") return;
-      touch.left = false;
-      touch.right = false;
-      startY = null;
-    });
+    btn(70, H - 60, "◀", () => { touch.left = true; }, () => { touch.left = false; });
+    btn(170, H - 60, "▶", () => { touch.right = true; }, () => { touch.right = false; });
+    btn(W - 70, H - 60, "⤴", () => { touch.jump = true; }, () => { touch.jump = false; });
   }
 
   update() {

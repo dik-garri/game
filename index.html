@@ -2,15 +2,21 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Платформер</title>
   <style>
     html, body { margin: 0; height: 100%; background: #0f1620; color: #e0e0e0; font-family: system-ui, -apple-system, sans-serif; }
-    body { display: flex; align-items: center; justify-content: center; gap: 20px; }
     canvas { image-rendering: pixelated; }
 
-    /* В режиме конструктора игра прижимается к левому краю, панель — справа. */
-    body.editor-mode { justify-content: flex-start; align-items: flex-start; padding: 20px; box-sizing: border-box; gap: 20px; }
+    /* Не даём странице скроллиться/зумиться от игровых жестов (мобильные). */
+    html, body { overflow: hidden; overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+    /* Игра на весь экран; Phaser FIT вписывает 832×512 с леттербоксом. */
+    #game-root { position: fixed; inset: 0; }
+
+    /* В режиме конструктора: игра слева (flex), панель справа. */
+    body.editor-mode { display: flex; align-items: flex-start; padding: 20px; box-sizing: border-box; gap: 20px; }
+    body.editor-mode #game-root { position: relative; inset: auto; flex: 1 1 auto; height: calc(100vh - 40px); }
     body.editor-mode #editor-panel { display: block; }
 
     #editor-panel {
@@ -92,7 +98,7 @@
   </style>
 </head>
 <body>
-  <div id="game-wrap"></div>
+  <div id="game-root"></div>
 
   <aside id="editor-panel">
     <h2>Конструктор уровней</h2>
